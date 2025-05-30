@@ -2,3 +2,5 @@ archive/
 
 *.ipynb
 *.pyc
+
+.env
