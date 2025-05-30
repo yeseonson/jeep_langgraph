@@ -1,6 +1,11 @@
+# 백업 파일 및 디렉토리
 archive/
 
+# Jupyter 노트북 파일
 *.ipynb
+
+# Python 바이트 코드
 *.pyc
 
+# 환경변수 파일
 .env
