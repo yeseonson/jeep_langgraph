@@ -34,8 +34,7 @@ def clarify_node(state):
         if info_check.strip().lower() == 'sufficient':
             return {
                 **state,
-                'output': "추가 정보가 필요하지 않습니다.",
-                'await_response': False
+                'output': "추가 정보가 필요하지 않습니다."
             }
         
         # 추가 정보가 필요한 경우
@@ -68,7 +67,6 @@ def clarify_node(state):
         return {
             **state,
             'output': response,
-            'await_response': True,
             'original_query': query  # 원래 질문 저장
             }
 
@@ -76,6 +74,5 @@ def clarify_node(state):
         logger.error(f"[ClarifyNode] 추가 질문 생성 중 오류: {e}", exc_info=True)
         return {
             **state,
-            "output": "죄송합니다. 추가 질문을 생성하는 데 문제가 발생했습니다.",
-            "await_response": False
+            "output": "죄송합니다. 추가 질문을 생성하는 데 문제가 발생했습니다."
             }
