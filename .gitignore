@@ -9,3 +9,6 @@ archive/
 
 # 환경변수 파일
 .env
+
+# gradio 설정 파일 무시
+.gradio/
