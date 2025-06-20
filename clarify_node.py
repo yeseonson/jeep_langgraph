@@ -34,7 +34,8 @@ def clarify_node(state):
         if info_check.strip().lower() == 'sufficient':
             return {
                 **state,
-                'output': "추가 정보가 필요하지 않습니다."
+                "is_clarify_followup": True,
+                "original_query": query
             }
         
         # 추가 정보가 필요한 경우
