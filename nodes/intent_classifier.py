@@ -1,4 +1,4 @@
-from model_loader import openai_response
+from jeepchat.services.model_loader import openai_response
 
 SYSTEM_PROMPT = """
 당신은 지프 튜닝 챗봇의 의도 분류기입니다. 사용자 질문의 핵심 의도를 파악하여 다음 다섯 분기 중 하나로만 분류하세요.
@@ -12,7 +12,7 @@ SYSTEM_PROMPT = """
     - 튜닝 관련 지식, 법규, 장착방법, 영향 등에 대한 정보 요청
     - 예시: "엔진 출력 향상을 위한 튜닝 방법이 있을까요?", "랭글러 JL 하체 보호는 어떻게 하죠?"
 3. **question about intent**
-    - 추천에 차종 정보, 부품 종류, 사용 목적 등 필요한 정보 부족으로 추가 정보 요청 필요
+    - 차종 정보, 부품 종류, 사용 목적 등 답변에 필요한 정보 부족으로 추가 정보 요청 필요
     - 예시: "튜닝 휠 어떤 게 좋아?" -> "차종이 어떻게 되시나요?"
 4. **out of context**
     - 자동차/지프/튜닝과 무관한 주제

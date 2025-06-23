@@ -1,7 +1,7 @@
-from model_loader import openai_response
-from logger import logger
-from chat_memory import ChatMemoryManager
-from generate_id import generate_message_id
+from jeepchat.services.model_loader import openai_response
+from jeepchat.core.logger import logger
+from jeepchat.services.chat_memory import ChatMemoryManager
+from jeepchat.core.generate_id import generate_message_id
 from datetime import datetime
 
 def fallback_node(state):
@@ -35,7 +35,7 @@ def fallback_node(state):
         
         # 메모리에 저장 (user_id와 thread_id가 있는 경우에만)
         if user_id and thread_id:
-            message_id = generate_message_id()
+            message_id = generate_message_id(user_id=user_id)
             memory_manager.save_message(user_id, thread_id, message_id, message)
 
         return {
@@ -47,7 +47,7 @@ def fallback_node(state):
         logger.error(f"[FallbackNode] fallback 응답 생성 중 오류: {e}", exc_info=True)
         
         # 오류 발생 시 기본 응답
-        error_response = "죄송합니다. 현재 시스템에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요."
+        error_response = "죄송합니다. 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요."
         
         # LangGraph state 형식으로 반환
         return {

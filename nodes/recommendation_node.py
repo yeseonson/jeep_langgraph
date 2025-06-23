@@ -1,15 +1,15 @@
-from chat_memory import ChatMemoryManager
-from database import opensearch_client
-from model_loader import openai_response
-from product_search import JeepSearchService
-from knowledge_search import hybrid_search
-from generate_id import generate_message_id
-from logger import logger
+from jeepchat.services.chat_memory import ChatMemoryManager
+from jeepchat.services.database import opensearch_client
+from jeepchat.services.model_loader import openai_response
+from jeepchat.services.product_search import JeepSearchService
+from jeepchat.services.knowledge_search import hybrid_search
+from jeepchat.core.generate_id import generate_message_id
+from jeepchat.core.logger import logger
 from typing import List, Dict
 from datetime import datetime
 
-TOP_K = 5
-KNOWLEDGE_TOP_K = 5
+PRODUCT_TOP_K = 5
+KNOWLEDGE_TOP_K = 3
 
 client = opensearch_client()
 product_search_service = JeepSearchService()
@@ -32,7 +32,7 @@ def recommendation_node(state):
             }
 
         # 제품 검색 수행
-        product_hits = product_search_service.search(query, size=TOP_K)
+        product_hits = product_search_service.search(query, size=PRODUCT_TOP_K)
         
         # 제품 정보 추출
         product_info = "\n".join([
@@ -68,7 +68,7 @@ def recommendation_node(state):
                 "timestamp": datetime.now().isoformat(),
                 "type": "recommendation"
             }
-            message_id = generate_message_id()
+            message_id = generate_message_id(user_id=user_id)
             memory_manager.save_message(user_id, thread_id, message_id, message)
 
         logger.info(f"LLM 응답: {response}")

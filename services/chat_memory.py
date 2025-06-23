@@ -1,11 +1,11 @@
 import json
+import boto3
 from typing import Dict, Any, List, Optional, cast
 from datetime import datetime
-import boto3
-from database import valkey_client
-from generate_id import generate_message_id
-from config import JEEP_S3_BUCKET
-from logger import logger
+from jeepchat.services.database import valkey_client
+from jeepchat.core.generate_id import generate_message_id
+from jeepchat.config.config import JEEP_S3_BUCKET
+from jeepchat.core.logger import logger
 
 class ChatMemoryManager:
     def __init__(self):
@@ -46,7 +46,7 @@ class ChatMemoryManager:
     def save_message(self, user_id: str, thread_id: str, message_id: str, message: dict) -> None:
         """개별 메시지 저장 및 thread에 메시지 id 추가"""
         try:
-            message_id = generate_message_id()
+            message_id = generate_message_id(user_id=user_id)
 
             # 메시지 내용 저장
             self.valkey.setex(
@@ -86,7 +86,7 @@ class ChatMemoryManager:
             "context": {context_key: context_value},
             "timestamp": datetime.now().isoformat()
         }
-        message_id = generate_message_id()
+        message_id = generate_message_id(user_id=user_id)
         self.save_message(user_id, thread_id, message_id, message)
 
     def get_message(self, message_id: str) -> Optional[Dict[str, Any]]:
@@ -99,3 +99,56 @@ class ChatMemoryManager:
         except Exception as e:
             logger.error(f"[ERROR] 메시지 조회 실패: {e}")
             return None
+
+    def get_all_users(self) -> List[str]:
+        try:
+            users = set()
+            prefix = "messages/"
+            response = self.s3_client.list_objects_v2(Bucket=self.bucket, Prefix=prefix, Delimiter='/')
+            if 'CommonPrefixes' in response:
+                for prefix_info in response['CommonPrefixes']:
+                    user_path = prefix_info['Prefix']
+                    user_id = user_path.split('/')[-2]
+                    users.add(user_id)
+            return sorted(list(users))
+        except Exception as e:
+            print(f"사용자 목록 조회 실패: {e}")
+            return []
+
+    def get_user_list(self) -> List[str]:
+        return self.get_all_users()
+
+    def get_user_threads(self, user_id: str) -> List[str]:
+        try:
+            threads = set()
+            prefix = f"messages/{user_id}/"
+            response = self.s3_client.list_objects_v2(Bucket=self.bucket, Prefix=prefix, Delimiter='/')
+            if 'CommonPrefixes' in response:
+                for prefix_info in response['CommonPrefixes']:
+                    thread_path = prefix_info['Prefix']
+                    thread_id = thread_path.split('/')[-2]
+                    threads.add(thread_id)
+            return sorted(list(threads))
+        except Exception as e:
+            print(f"사용자 thread 목록 조회 실패: {e}")
+            return []
+
+    def get_thread_list(self, user_id: str) -> List[str]:
+        return self.get_user_threads(user_id)
+
+    def load_chat_history(self, user_id: str, thread_id: str) -> List[Dict[str, str]]:
+        try:
+            messages = self.get_thread_messages(user_id, thread_id)
+            chat_history = []
+            for msg_data in messages:
+                message = msg_data.get("message", {})
+                user_input = message.get("user_input", "").strip()
+                output = message.get("output", "").strip()
+                if user_input:
+                    chat_history.append({"role": "user", "content": user_input})
+                if output:
+                    chat_history.append({"role": "assistant", "content": output})
+            return chat_history
+        except Exception as e:
+            print(f"[ERROR] 채팅 히스토리 로드 실패: {e}")
+            return []

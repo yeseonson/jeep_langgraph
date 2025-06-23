@@ -1,5 +1,5 @@
 
-from config import OPENAI_CLIENT, GPT_4O_MINI_MODEL_ID, QWEN3_4B_MODEL_ID, HYPERCLOVA_3B_MODEL_ID
+from jeepchat.config.config import OPENAI_CLIENT, GPT_4O_MINI_MODEL_ID, QWEN3_4B_MODEL_ID, HYPERCLOVA_3B_MODEL_ID
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 

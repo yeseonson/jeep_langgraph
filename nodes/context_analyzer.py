@@ -1,10 +1,10 @@
-from logger import logger
+from jeepchat.core.logger import logger
 
 def analyze_context(state):
     """맥락 분석 노드 - 이전 대화와 연관성 판단"""
 
-    from chat_memory import ChatMemoryManager
-    from model_loader import openai_response
+    from jeepchat.services.chat_memory import ChatMemoryManager
+    from jeepchat.services.model_loader import openai_response
     
     user_input = state.get("user_input", "")
     user_id = state.get("user_id")
@@ -37,27 +37,37 @@ def analyze_context(state):
             이전 대화:
             {conversation_history}
 
-            현재 질문: {user_input}
+            현재 질문:
+            {user_input}
 
-            현재 질문이 이전 대화와 맥락상 연관되어 있는지 판단해주세요.
+            위의 '이전 대화'와 '현재 질문'이 **맥락상 연관되어 있는지** 판단해 주세요.
 
-            연관성 판단 기준:
-            1. 직접적 언급
-               - 이전 대화에서 언급된 구체적인 제품/부품명에 대한 추가 질문
-               - 이전 대화에서 언급된 차종/모델에 대한 추가 질문
-               - 이전 대화에서 언급된 튜닝 종류에 대한 추가 질문
+            ※ 아래 기준을 모두 고려해 판단해 주세요.
 
-            2. 주제의 연속성
-               - 이전 대화에서 언급된 튜닝 관련 주제의 심화 질문
-               - 이전 대화에서 언급된 제품의 구체적인 사양이나 가격 문의
-               - 이전 대화에서 언급된 제품의 설치나 사용법 문의
+            [연관성 판단 기준]
 
-            3. 맥락적 연관성
-               - 이전 대화의 맥락을 이해해야 정확한 답변이 가능한 경우
-               - 이전 추천이나 정보에 대한 추가 문의
-               - 논리적으로 이어지는 질문이나 심화 내용
+            1. **명시적 연속성**
+            - 이전 대화에서 언급된 구체적인 차량 모델, 부품명, 제품군, 또는 튜닝 종류에 대한 후속 질문
+            - 예: 같은 차종에 대해 성능, 설치법, 가격 등 상세 내용을 묻는 질문
 
-            연관성이 있으면 'relevant'로, 없으면 'not_relevant'로 답해주세요.
+            2. **주제 연속성**
+            - 동일한 차량을 기준으로 하여, 유사한 목적(예: 오프로드 성능 개선)을 가진 질문
+            - 동일한 제품군(예: 소프트탑, 서스펜션 등)에 대해 추가로 묻는 경우
+
+            3. **맥락적 연관성**
+            - 이전 추천, 정보, 설명을 기반으로 판단이 필요한 질문
+            - 대화 흐름을 고려했을 때 자연스럽게 이어지는 후속 질문
+
+            [비연관성 판단 기준]
+
+            - 차량 모델이 변경되었고, 새로운 모델에 대해 다른 주제(부품/목적)를 묻는 경우
+            - 제품 카테고리나 튜닝 목적이 완전히 바뀐 경우
+            - 새로운 대화를 시작한 것처럼 보이는 경우 (예: 'JK의 데쓰워블 튜닝 추천')
+
+            ---
+
+            판단 결과를 다음 중 하나로만 출력하세요:
+            'relevant' 또는 'not_relevant'
             """
 
             try:

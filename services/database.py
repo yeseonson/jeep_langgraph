@@ -4,8 +4,8 @@ import json
 from opensearchpy import OpenSearch
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
-from config import OPENSEARCH_HOST, OPENSEARCH_PORT, VALKEY_HOST, VALKEY_PORT, VALKEY_PASSWORD, JEEP_S3_BUCKET
-from logger import logger
+from jeepchat.config.config import OPENSEARCH_HOST, OPENSEARCH_PORT, VALKEY_HOST, VALKEY_PORT, VALKEY_PASSWORD, JEEP_S3_BUCKET
+from jeepchat.core.logger import logger
 
 
 def opensearch_client():

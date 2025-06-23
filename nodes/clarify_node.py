@@ -1,7 +1,7 @@
-from model_loader import openai_response
-from logger import logger
-from chat_memory import ChatMemoryManager
-from generate_id import generate_message_id
+from jeepchat.services.model_loader import openai_response
+from jeepchat.services.chat_memory import ChatMemoryManager
+from jeepchat.core.logger import logger
+from jeepchat.core.generate_id import generate_message_id
 from datetime import datetime
 
 def clarify_node(state):
@@ -30,7 +30,7 @@ def clarify_node(state):
     try:
         info_check = openai_response(system_prompt=info_check_prompt, user_input=query)
         
-        # 충분한 정보가 있는 경우
+        # 충분한 정보가 있는 경우 -> 라우터 노드로 이동 필요
         if info_check.strip().lower() == 'sufficient':
             return {
                 **state,
@@ -62,7 +62,7 @@ def clarify_node(state):
                 "timestamp": datetime.now().isoformat(),
                 "type": "clarification"
             }
-            message_id = generate_message_id()
+            message_id = generate_message_id(user_id=user_id)
             memory_manager.save_message(user_id, thread_id, message_id, message)
         
         return {

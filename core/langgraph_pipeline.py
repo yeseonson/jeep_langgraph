@@ -1,13 +1,13 @@
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, Optional, Any
-from context_analyzer import analyze_context
-from logger import logger
+from jeepchat.core.logger import logger
 
 # 노드 임포트
-from router_node import router_node
-from recommendation_node import recommendation_node
-from clarify_node import clarify_node
-from fallback_node import fallback_node
+from jeepchat.nodes.context_analyzer import analyze_context
+from jeepchat.nodes.router_node import router_node
+from jeepchat.nodes.recommendation_node import recommendation_node
+from jeepchat.nodes.clarify_node import clarify_node
+from jeepchat.nodes.fallback_node import fallback_node
 
 # 상태 정의
 class ChatState(TypedDict):
