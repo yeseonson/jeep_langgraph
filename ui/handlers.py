@@ -4,8 +4,8 @@ from typing import List, Dict
 from jeepchat.core.logger import logger
 from jeepchat.services.chat_memory import ChatMemoryManager
 from jeepchat.services.chat_storage import S3ChatHistoryManager
-from jeepchat.core.generate_id import generate_user_id, generate_thread_id, generate_message_id
-from jeepchat.core.langgraph_pipeline import graph
+from jeepchat.core.utils import generate_user_id, generate_thread_id, generate_message_id
+from jeepchat.core.pipeline import graph
 
 memory_manager = ChatMemoryManager()
 chat_manager = S3ChatHistoryManager()

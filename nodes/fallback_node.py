@@ -1,7 +1,7 @@
 from jeepchat.services.model_loader import openai_response
 from jeepchat.core.logger import logger
 from jeepchat.services.chat_memory import ChatMemoryManager
-from jeepchat.core.generate_id import generate_message_id
+from jeepchat.core.utils import generate_message_id
 from datetime import datetime
 
 def fallback_node(state):

@@ -3,7 +3,7 @@ from jeepchat.services.database import opensearch_client
 from jeepchat.services.model_loader import openai_response
 from jeepchat.services.product_search import JeepSearchService
 from jeepchat.services.knowledge_search import hybrid_search
-from jeepchat.core.generate_id import generate_message_id
+from jeepchat.core.utils import generate_message_id
 from jeepchat.core.logger import logger
 from typing import List, Dict
 from datetime import datetime

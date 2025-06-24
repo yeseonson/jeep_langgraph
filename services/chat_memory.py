@@ -3,7 +3,7 @@ import boto3
 from typing import Dict, Any, List, Optional, cast
 from datetime import datetime
 from jeepchat.services.database import valkey_client
-from jeepchat.core.generate_id import generate_message_id
+from jeepchat.core.utils import generate_message_id
 from jeepchat.config.config import JEEP_S3_BUCKET
 from jeepchat.core.logger import logger
 
