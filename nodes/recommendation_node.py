@@ -3,12 +3,14 @@ from jeepchat.services.database import opensearch_client
 from jeepchat.services.model_loader import openai_response
 from jeepchat.services.product_search import JeepSearchService
 from jeepchat.services.knowledge_search import hybrid_search
+from jeepchat.services.neo4j_recommend import recommend_parts, neo4j_graph
 from jeepchat.core.utils import generate_message_id
 from jeepchat.core.logger import logger
-from typing import List, Dict
+from jeepchat.config.prompts import generate_product_recommendation_prompt, product_recommend_prompt
+from typing import List, Dict, Any
 from datetime import datetime
 
-PRODUCT_TOP_K = 5
+PRODUCT_TOP_K = 3
 KNOWLEDGE_TOP_K = 3
 
 client = opensearch_client()
@@ -19,8 +21,8 @@ memory_manager = ChatMemoryManager()
 def recommendation_node(state):
     """상품 추천 노드"""
     query = state["user_input"]
-    user_id = state.get("user_id")
-    thread_id = state.get("thread_id")
+    user_id = state["user_id"]
+    thread_id = state["thread_id"]
     conversation_history = state.get("conversation_history", "")
 
     try:
@@ -33,15 +35,13 @@ def recommendation_node(state):
 
         # 제품 검색 수행
         product_hits = product_search_service.search(query, size=PRODUCT_TOP_K)
+
+        neo4j_hits = recommend_parts(neo4j_graph(), product_hits)
+        logger.info(f"[Neo4j Recommend] product hits: {product_hits}")
+        logger.info(f"[Neo4j Recommend] neo4j hits: {neo4j_hits}")
         
         # 제품 정보 추출
-        product_info = "\n".join([
-            f"제품명: {hit.get('product_name_ko', '')}\n"
-            f"가격: ${hit.get('price', 0):.2f}\n"
-            f"제조사: {hit.get('manufacturer', '')}\n"
-            f"카테고리: {hit.get('main_category', '')}\n"
-            for hit in product_hits[:3]
-        ])
+        product_info = format_product_recommendations(neo4j_hits=neo4j_hits)
 
         logger.info(f"상품 검색 결과: {product_info}")
 
@@ -85,6 +85,32 @@ def recommendation_node(state):
             **state,
             "output": "죄송합니다. 처리 중 오류가 발생했습니다."
         }
+    
+def format_product_recommendations(neo4j_hits: Dict[str, Dict[str, Any]]) -> str:
+    """
+    기준 부품 및 추천 부품 정보를 문자열로 포맷팅하여 반환
+    """
+    lines = []
+
+    for base_hit in neo4j_hits.values():
+        base = base_hit["base_info"]
+        lines.append(f"모델번호: {base.get('model_no', '')}")
+        lines.append(f"제품명: {base.get('name_ko', '')}")
+        lines.append(f"가격: ${base.get('base_price', 0):.2f}")
+        lines.append(f"제조사: {base.get('manufacturer_name', '')}")
+        lines.append(f"카테고리: {base.get('category_name', '')}")
+        lines.append(f"추천 부품 수: {base_hit.get('recommendation_count', 0)}")
+
+        lines.extend([
+            f"- 추천 모델번호: {rec.get('model_no', '')}\n"
+            f"  제품명: {rec.get('name_ko', '')}\n"
+            f"  가격: ${rec.get('price', 0):.2f}"
+            for rec in base_hit.get("recommendations", [])
+        ])
+
+        lines.append("")  # 빈 줄
+
+    return "\n".join(lines)
 
 def call_llm_with_context(user_query: str, context: str, conversation_history: List[Dict] = []):
     """컨텍스트와 함께 LLM 호출"""
@@ -99,37 +125,7 @@ def call_llm_with_context(user_query: str, context: str, conversation_history: L
             f"사용자: {item['user']}\n시스템: {item['system']}" for item in recent_history
         ) + "\n"
 
-    prompt = f"""<|im_start|>system
-                당신은 지프 튜닝 및 부품 전문가입니다. 아래 정보를 바탕으로 정확하고 도움이 되는 답변을 제공해주세요.
-                되도록 사용자가 사용한 단어를 유지하되, 오타를 포함하지 말고 정확하게 표기하세요.
-
-                답변 시 다음 사항을 고려해주세요:
-                1. 제품 추천
-                - 추천 제품의 구체적인 특징과 장점을 설명
-                - 호환성 정보가 있다면 반드시 언급
-                - 가격 정보가 있다면 포함
-                - 제품의 주요 사용 사례나 적합한 상황 설명
-
-                2. 관련 지식 정보
-                - 제품 사용 시 주의사항이나 팁
-                - 설치나 사용에 관련된 기술적 정보
-                - 법규나 규정 관련 정보
-                - 다른 사용자들의 경험이나 추천 사항
-
-                3. 종합적인 조언
-                - 제품 선택 시 고려해야 할 추가 사항
-                - 대안 제품이나 관련 제품 추천
-                - 구매 전 확인해야 할 사항
-                - 설치나 사용 시 필요한 추가 부품이나 도구<|im_end|>
-                <|im_start|>user
-                {history_context}
-                
-                다음은 관련 정보입니다:
-
-                {context}
-
-                질문: {user_query}<|im_end|>
-                <|im_start|>assistant"""
+    prompt = product_recommend_prompt(history_context=history_context, context=context, user_query=user_query)
 
     logger.info(f"history_context: {history_context}")
 
@@ -142,22 +138,8 @@ def call_llm_with_context(user_query: str, context: str, conversation_history: L
         return f"응답 생성 중 오류가 발생했습니다: {str(e)}"
 
 def summarize_knowledge_hits(query, documents):
-    summarization_prompt = f"""당신은 지프 차량의 튜닝과 주행 환경에 대한 기술 문서를 분석하는 전문가입니다.
-
-                            다음은 사용자 질문과 관련된 커뮤니티 기반 지식 문서입니다. 아래 문서들의 **내용만을 기반으로** 요약을 작성해 주세요. \
-                            외부 지식이나 일반적인 추론을 추가하지 마십시오.
-
-                            - 문서 내에 언급된 **기술 정보, 사용자 경험, 부품 정보**는 요약에 반드시 포함해 주세요.
-                            - 문서에 **언급되지 않은 정보**는 절대 삽입하지 마세요.
-                            - 요약은 제품 추천에 참고할 수 있도록 구성하되, **문서에 실제로 언급된 내용만** 바탕으로 하세요.
-
-                            질문: "{query}"
-
-                            문서 내용:
-                            {documents}
-
-                            요약:"""
-
+    
+    summarization_prompt = generate_product_recommendation_prompt(query=query, documents=documents)
     summary = openai_response(
         system_prompt="당신은 지프 튜닝 기술 문서를 요약하는 전문가입니다. 제공된 문서 내용을 기반으로만 요약을 생성하세요. 외부 지식, 유추, 상식에 기반한 내용은 포함하지 마세요.", 
         user_input=summarization_prompt
