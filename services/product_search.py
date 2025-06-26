@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-import logging
 import time
 import json
 from typing import Dict, Any, List
-from jeepchat.core.logger import logger
+from jeepchat.logger import logger
 from jeepchat.services.database import opensearch_client
 from jeepchat.services.model_loader import get_embedder
 from jeepchat.config.config import PRODUCT_INDEX_NAME
@@ -128,7 +127,11 @@ class JeepSearchService:
                 }
             }
 
-            logger.debug(f"Opensearch query: {json.dumps(query_body, ensure_ascii=False)}")
+            text_query = query_body.get('query', {}).get('function_score', {}).get('query', {})
+
+            logger.debug(f"Opensearch query: {json.dumps(text_query, ensure_ascii=False)}")
+            logger.debug(f"Search size: {query_body.get('size', 'default')}")
+
             start_time = time.time()
             response = self.client.search(index=self.index_name, body=query_body)
             hits = response["hits"]["hits"]
@@ -136,7 +139,7 @@ class JeepSearchService:
             logger.debug(f"Search completed: {len(hits)} results, time elapsed: {elapsed_time:.2f} seconds")
             
             result = [
-                {
+                {   "model_no": hit["_source"].get("model_no", ""),
                     "product_name_ko": hit["_source"].get("product_name_ko", ""),
                     "score": hit["_score"],
                     "product_name": hit["_source"].get("product_name", ""),
@@ -147,7 +150,9 @@ class JeepSearchService:
                 for hit in hits
             ]
             
-            return result
+            model_no_list = [item["model_no"] for item in result if item["model_no"]]
+            
+            return model_no_list
 
         except Exception as e:
             logger.error(f"Error during search processing: {str(e)}", exc_info=True)
@@ -158,8 +163,4 @@ class JeepSearchService:
 if __name__ == "__main__":
     search_service = JeepSearchService()
     results = search_service.search("글래디에이터 타이어", size=TOP_K)
-    # print(results)
-    # logging.info(f"{results}")
-    for r in results:
-        logging.info(f"{r}")
-        print(r)
+    print(results)
