@@ -1,10 +1,10 @@
-from jeepchat.core.logger import logger
+from jeepchat.logger import logger
 from jeepchat.nodes.intent_classifier import classify_intent
 
 def router_node(state):
     user_input = state["user_input"]
-    user_id = state.get("user_id")
-    thread_id = state.get("thread_id")
+    user_id = state["user_id"]
+    thread_id = state["thread_id"]
     is_clarify_followup = state.get("is_clarify_followup", False)
     conversation_history = state.get("conversation_history", [])
 
@@ -14,15 +14,19 @@ def router_node(state):
             f"사용자: {msg['user']}\n시스템: {msg['system']}" for msg in conversation_history
         )
 
-    # Clarify 후속이면 의도 재분류만 수행, followup은 False로 설정
     if is_clarify_followup:
         intent = classify_intent(user_input, history_text, is_clarify_followup)
         logger.info(f"[Router] Clarify 후속 질문 감지 → intent: {intent}")
+
+        if intent.strip().lower() == "clarify":
+            logger.warning(f"[Router] intent가 Clarify로 재분류됨 → 무한루프 방지를 위해 intent를 {intent}로 변경")
+            intent = "recommendation"
+
         return {
             **state,
             "intent": intent,
-            "is_followup": False,  # 더 이상 clarify로 돌아가지 않도록
-            "is_clarify_followup": False,  # 사용 후 초기화
+            "is_followup": False,
+            "is_clarify_followup": False,
             "output": ""
         }
 
