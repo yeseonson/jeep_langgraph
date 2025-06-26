@@ -1,41 +1,14 @@
 import json
 import time
-import os
 from jeepchat.config.config import KNOWLEDGE_INDEX_NAME
-from jeepchat.core.logger import logger
-from opensearchpy import OpenSearch
-from sentence_transformers import SentenceTransformer
+from jeepchat.logger import logger
+from jeepchat.services.database import opensearch_client
+from jeepchat.services.model_loader import get_embedder
 from dotenv import load_dotenv
 load_dotenv()
 
-OPENSEARCH_HOST = os.getenv("OPENSEARCH_HOST")
-OPENSEARCH_PORT = os.getenv("OPENSEARCH_PORT")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL_ID")
 TOP_K = 5 
-
-def opensearch_client() -> OpenSearch:
-    logger.info(f"Attempting to connect to OpenSearch client: {OPENSEARCH_HOST}:{OPENSEARCH_PORT}")
-    try:
-        client = OpenSearch(
-            hosts=[{'host': OPENSEARCH_HOST, 'port': OPENSEARCH_PORT}],
-            use_ssl=False,
-            verify_certs=False,
-            ssl_assert_hostname=False,
-            ssl_show_warn=False,
-            timeout=60
-        )
-        logger.info("Successfully connected to OpenSearch client")
-        return client
-    except Exception as e:
-        logger.error(f"Failed to connect to OpenSearch client: {e}")
-        raise
-
-try:
-    embedder = SentenceTransformer(EMBEDDING_MODEL)
-    logger.info("SentenceTransformer model loaded successfully")
-except Exception as e:
-    logger.error(f"Failed to load SentenceTransformer model: {e}")
-    raise
+embedder = get_embedder()
 
 def semantic_search(query_text, top_k=TOP_K):
     logger.info(f"Starting semantic search: '{query_text}', top_k={top_k}")
@@ -43,7 +16,7 @@ def semantic_search(query_text, top_k=TOP_K):
     
     try:
         client = opensearch_client()
-
+        
         query_embedding = embedder.encode(query_text)
         logger.debug(f"Query embedding generated (dimensions: {len(query_embedding)})")
         
@@ -122,16 +95,19 @@ def hybrid_search(query_text, top_k=TOP_K):
                                     }
                                 }
                             },
-                            "weight": 0.7  # Vector search weight
+                            "weight": 50
                         }
                     ],
-                    "score_mode": "sum",
-                    "boost_mode": "sum"
+                    "score_mode": "max",
+                    "boost_mode": "multiply"
                 }
             }
         }
         
-        logger.debug(f"Hybrid search query: {json.dumps(search_query, ensure_ascii=False)}")
+        text_query = search_query.get('query', {}).get('function_score', {}).get('query', {})
+
+        logger.debug(f"Hybrid search query: {json.dumps(text_query, ensure_ascii=False)}")
+        logger.debug(f"Search size: {search_query.get('size', 'default')}")
         
         # Execute search
         logger.info(f"Executing hybrid search query on index '{KNOWLEDGE_INDEX_NAME}'...")
@@ -222,7 +198,7 @@ def main():
 
 if __name__ == "__main__":
     try:
-        logger.info(f"System configuration - OpenSearch: {OPENSEARCH_HOST}:{OPENSEARCH_PORT}, Index: {KNOWLEDGE_INDEX_NAME}, TOP_K: {TOP_K}")
+        logger.info(f"System configuration - Index: {KNOWLEDGE_INDEX_NAME}, TOP_K: {TOP_K}")
         main()
     except Exception as e:
         logger.critical(f"Unexpected error: {e}", exc_info=True)
