@@ -3,9 +3,9 @@ import boto3
 from typing import Dict, Any, List, Optional, cast
 from datetime import datetime
 from jeepchat.services.database import valkey_client
-from jeepchat.core.utils import generate_message_id
+from jeepchat.utils import generate_message_id
 from jeepchat.config.config import JEEP_S3_BUCKET
-from jeepchat.core.logger import logger
+from jeepchat.logger import logger
 
 class ChatMemoryManager:
     def __init__(self):

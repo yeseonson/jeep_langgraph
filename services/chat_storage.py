@@ -1,9 +1,8 @@
 import json
 from typing import List, Dict, Any
-
 from jeepchat.config.config import JEEP_S3_BUCKET
 from jeepchat.services.database import s3_client
-from jeepchat.core.logger import logger
+from jeepchat.logger import logger
 
 
 class S3ChatHistoryManager:

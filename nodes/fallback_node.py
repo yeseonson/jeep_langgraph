@@ -1,13 +1,13 @@
 from jeepchat.services.model_loader import openai_response
-from jeepchat.core.logger import logger
+from jeepchat.logger import logger
 from jeepchat.services.chat_memory import ChatMemoryManager
-from jeepchat.core.utils import generate_message_id
+from jeepchat.utils import generate_message_id
 from datetime import datetime
 
 def fallback_node(state):
     query = state['user_input']
-    user_id = state.get('user_id')
-    thread_id = state.get('thread_id')
+    user_id = state['user_id']
+    thread_id = state['thread_id']
     conversation_history = state.get("conversation_history", [])
 
     memory_manager = ChatMemoryManager()

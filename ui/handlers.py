@@ -1,11 +1,11 @@
 import gradio as gr
 from typing import List, Dict
 
-from jeepchat.core.logger import logger
+from jeepchat.logger import logger
 from jeepchat.services.chat_memory import ChatMemoryManager
 from jeepchat.services.chat_storage import S3ChatHistoryManager
-from jeepchat.core.utils import generate_user_id, generate_thread_id, generate_message_id
-from jeepchat.core.pipeline import graph
+from jeepchat.utils import generate_user_id, generate_thread_id, generate_message_id
+from jeepchat.pipeline.main_graph import graph
 
 memory_manager = ChatMemoryManager()
 chat_manager = S3ChatHistoryManager()

@@ -1,4 +1,4 @@
-from jeepchat.core.logger import logger
+from jeepchat.logger import logger
 
 def analyze_context(state):
     """맥락 분석 노드 - 이전 대화와 연관성 판단"""

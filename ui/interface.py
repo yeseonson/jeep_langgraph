@@ -1,5 +1,5 @@
 import gradio as gr
-from jeepchat.core.utils import generate_user_id
+from jeepchat.utils import generate_user_id
 from jeepchat.ui.handlers import (
     run_pipeline_for_gradio,
     on_thread_select,
