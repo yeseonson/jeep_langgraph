@@ -3,18 +3,31 @@ from jeepchat.logger import logger
 from jeepchat.services.neo4j_recommend import recommend_parts, neo4j_graph
 
 def neo4j_search_node(state: Dict[str, Any]) -> Dict[str, Any]:
+    return neo4j_search_node_common(state, query_type="same")
+
+def neo4j_plan_b_node(state: Dict[str, Any]) -> Dict[str, Any]:
+    return neo4j_search_node_common(state, query_type="different")
+
+def neo4j_search_node_common(state: Dict[str, Any], query_type: str = "same") -> Dict[str, Any]:
     try:
-        product_hits = state.get("product_hits", [])
-        if not product_hits:
-            logger.warning("[neo4j_search_node] product_hits가 비어 있어 추천을 건너뜁니다.")
+        relevant_docs = state.get("relevant_docs", [])
+        if not relevant_docs:
+            logger.warning(f"[neo4j_search_node_common] relevant_docs가 비어 있어 product search를 건너뜁니다. (query_type={query_type})")
             return {
                 **state,
                 "neo4j_hits": {},
             }
+
+        from jeepchat.config.constants import same_manufacturer_query, different_manufacturer_query
+        optional_query = same_manufacturer_query if query_type == "same" else different_manufacturer_query
+
+        model_no_list = [item["model_no"] for item in relevant_docs if item.get("model_no")]
+        neo4j_hits = recommend_parts(graph=neo4j_graph(),
+                                     input_model_nos=model_no_list,
+                                     optional_query=optional_query)
         
-        neo4j_hits = recommend_parts(neo4j_graph(), product_hits)
-        logger.info(f"[neo4j_search_node] 추천 결과: {len(neo4j_hits)}개")
-        logger.debug(f"[neo4j_search_node] 추천 상세: {neo4j_hits}")
+        logger.info(f"[neo4j_search_node_common] 추천 결과: {len(neo4j_hits)}개 (query_type={query_type})")
+        logger.debug(f"[neo4j_search_node_common] 추천 상세: {neo4j_hits}")
 
         return {
             **state,
@@ -22,7 +35,7 @@ def neo4j_search_node(state: Dict[str, Any]) -> Dict[str, Any]:
         }
 
     except Exception as e:
-        logger.error(f"[neo4j_search_node] 검색 중 오류 발생: {e}", exc_info=True)
+        logger.error(f"[neo4j_search_node_common] 검색 중 오류 발생: {e} (query_type={query_type})", exc_info=True)
         return {
             **state,
             "neo4j_hits": {},
