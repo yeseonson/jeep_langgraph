@@ -11,13 +11,24 @@ from jeepchat.services.chat_memory import ChatMemoryManager
 
 chat_manager = ChatMemoryManager()
 
+interface = gr.Blocks(css="""
+#chat-input textarea {
+    height: 48px !important;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+#send-btn {
+    height: 48px !important;
+}
+""")
+
 def create_chat_interface():
-    with gr.Blocks(title="Jeep Chat Interface") as interface:
+    with gr.Blocks(title="Jeep Chat") as interface:
         default_user = generate_user_id()
 
         with gr.Row():
             with gr.Column(scale=1):
-                gr.Markdown("### Jeep Chat")
+                gr.Markdown("## Jeep Chat")
                 user_id_text = gr.Textbox(label="사용자", value=default_user, interactive=False)
                 thread_selector = gr.Dropdown(label="대화 목록", choices=chat_manager.get_user_threads(default_user))
                 thread_status = gr.Textbox(label="상태", interactive=False)
@@ -25,10 +36,16 @@ def create_chat_interface():
                 debug_info = gr.Textbox(label="디버그 정보", interactive=False, visible=True)
 
             with gr.Column(scale=3):
-                chatbot = gr.Chatbot(label="채팅", height=500, type="messages")
+                chatbot = gr.Chatbot(label="채팅", height=600, type="messages")
                 with gr.Row():
-                    msg = gr.Textbox(label="메시지 입력", placeholder="메시지를 입력하세요...", scale=4)
-                    send_btn = gr.Button("전송", scale=1)
+                    msg = gr.Textbox(
+                        label="메시지 입력", 
+                        placeholder="메시지를 입력하세요.", 
+                        lines=1, 
+                        scale=4,
+                        elem_id="chat-input"
+                    )
+                    send_btn = gr.Button("전송", scale=1, elem_id="send-btn")
                 clear_btn = gr.Button("대화 초기화")
 
         thread_selector.change(fn=on_thread_select, inputs=[thread_selector, user_id_text], outputs=[chatbot, thread_status])
