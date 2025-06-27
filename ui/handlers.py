@@ -37,6 +37,8 @@ def run_pipeline_for_gradio(message: str, history: List[Dict[str, str]], user_id
         history.append({"role": "assistant", "content": output})
 
         updated_threads = chat_manager.get_user_threads(user_id)
+        if thread_id not in updated_threads:
+            updated_threads.append(thread_id)
         return "", history, gr.update(choices=updated_threads, value=thread_id)
 
     except Exception as e:
