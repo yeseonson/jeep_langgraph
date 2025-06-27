@@ -150,9 +150,9 @@ class JeepSearchService:
                 for hit in hits
             ]
             
-            model_no_list = [item["model_no"] for item in result if item["model_no"]]
+            # model_no_list = [item["model_no"] for item in result if item["model_no"]]
             
-            return model_no_list
+            return result
 
         except Exception as e:
             logger.error(f"Error during search processing: {str(e)}", exc_info=True)
