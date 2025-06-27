@@ -17,6 +17,7 @@ def get_logger(name: str = "jeepchat") -> logging.Logger:
     # 로거 생성
     logger = logging.getLogger(name)
     logger.setLevel(log_level)
+    logger.propagate = False
 
     # 중복 핸들러 방지
     if not logger.handlers:
