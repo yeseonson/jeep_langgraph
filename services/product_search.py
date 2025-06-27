@@ -19,7 +19,6 @@ class JeepSearchService:
             "쇼바": "Shock Absorber",
             "휀더": "Fender",
             "휀다": "Fender",
-            "범퍼": "Bumper",
             "암대": "Long Arm",
             "8암대": "8 inch Long Arm",
             "데후": "Differential Gear",
