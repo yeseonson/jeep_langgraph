@@ -48,8 +48,88 @@ class JeepSearchService:
             logger.debug(f"Added replacement keywords: {added_keywords}")
         
         return replaced_unique 
+    
+    def build_query_body(self, processed_query, query_vector, size: int = TOP_K, vehicle_fitment=None):
+        bool_query = {
+            "should": [
+                {
+                    "dis_max": {
+                        "queries": [
+                            {
+                                "match": {
+                                    "product_name_ko": {
+                                        "query": processed_query,
+                                        "boost": 1,
+                                        "minimum_should_match": "5%"
+                                    }
+                                }
+                            },
+                            {
+                                "match": {
+                                    "product_name": {
+                                        "query": processed_query,
+                                        "boost": 1,
+                                        "minimum_should_match": "5%"
+                                    }
+                                }
+                            },
+                            {
+                                "match": {
+                                    "keywords": {
+                                        "query": processed_query,
+                                        "boost": 2,
+                                        "minimum_should_match": "5%"
+                                    }
+                                }
+                            },
+                        ]
+                    }
+                }
+            ]
+        }
 
-    def search(self, query_text: str, size: int = TOP_K) -> List[Dict[str, Any]]:
+        # vehicle_fitment 값이 주어진 경우 filter 조건 추가
+        if vehicle_fitment:
+            bool_query["filter"] = [
+                {
+                    "match_phrase": {
+                        "vehicle_fitment": vehicle_fitment
+                    }
+                }
+            ]
+
+        query_body = {
+            "size": size,
+            "query": {
+                "function_score": {
+                    "query": {
+                        "bool": bool_query
+                    },
+                    "functions": [
+                        {
+                            "script_score": {
+                                "script": {
+                                    "source": "knn_score",
+                                    "lang": "knn",
+                                    "params": {
+                                        "field": "embedding_vector",
+                                        "query_value": query_vector,
+                                        "space_type": "cosinesimil"
+                                    }
+                                }
+                            },
+                            "weight": 50
+                        }
+                    ],
+                    "boost_mode": "multiply",
+                    "score_mode": "max"
+                }
+            }
+        }
+
+        return query_body
+
+    def search(self, query_text: str, size: int = TOP_K, vehicle_fitment=None) -> List[Dict[str, Any]]:
         """사용자 쿼리를 분석하여 검색 쿼리 생성"""
         try:
             # 키워드 대체
@@ -61,70 +141,7 @@ class JeepSearchService:
             logger.debug(f"Replaced query: {processed_query}")
 
             query_vector = self.embedder.encode(processed_query, batch_size=8).tolist()
-            query_body = {
-                "size": size,
-                "query": {
-                    "function_score": {
-                        "query": {
-                            "bool": {
-                                "should": [
-                                    {
-                                        "dis_max": {  
-                                            "queries": [
-                                                {
-                                                    "match": {
-                                                        "product_name_ko": {
-                                                            "query": processed_query,
-                                                            "boost": 1,
-                                                            "minimum_should_match": "5%"
-                                                        }
-                                                    }
-                                                },
-                                                {
-                                                    "match": {
-                                                        "product_name": {
-                                                            "query": processed_query,
-                                                            "boost": 1,
-                                                            "minimum_should_match": "5%"
-                                                        }
-                                                    }
-                                                },
-                                                {
-                                                    "match": {
-                                                        "keywords": {
-                                                            "query": processed_query,
-                                                            "boost": 2,
-                                                            "minimum_should_match": "5%"
-                                                        }
-                                                    }
-                                                },
-                                            ]
-                                        }
-                                    },
-                                ],
-                            }
-                        },
-                        "functions": [
-                            {
-                                "script_score": {
-                                    "script": {
-                                        "source": "knn_score",
-                                        "lang": "knn",
-                                        "params": {
-                                            "field": "embedding_vector",
-                                            "query_value": query_vector,
-                                            "space_type": "cosinesimil"
-                                        }
-                                    }
-                                },
-                                "weight": 30
-                            }
-                        ],
-                        "boost_mode": "multiply",
-                        "score_mode": "max"
-                    }
-                }
-            }
+            query_body = self.build_query_body(processed_query, query_vector, size, vehicle_fitment)
 
             text_query = query_body.get('query', {}).get('function_score', {}).get('query', {})
 
@@ -144,7 +161,8 @@ class JeepSearchService:
                     "product_name": hit["_source"].get("product_name", ""),
                     "manufacturer": hit["_source"].get("manufacturer", ""),
                     "price": hit["_source"].get("price", ""),
-                    "main_category": hit["_source"].get("main_category")
+                    "main_category": hit["_source"].get("main_category"),
+                    "product_url": hit["_source"].get("detail_url")
                 }
                 for hit in hits
             ]
