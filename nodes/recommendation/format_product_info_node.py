@@ -40,6 +40,7 @@ def format_product_recommendations(neo4j_hits: Dict[str, Dict[str, Any]]) -> str
         manufacturer_rank = base.get("manufacturer_ranking")
         manufacturer_rank_str = str(manufacturer_rank) if manufacturer_rank is not None else "정보 없음"
         category = base.get("category_name", "정보 없음")
+        product_url = base.get("product_url", "정보 없음")
         rec_count = hit.get("recommendation_count", 0)
 
         lines.append(f"[기준 부품] {base_model_no}")
@@ -47,8 +48,9 @@ def format_product_recommendations(neo4j_hits: Dict[str, Dict[str, Any]]) -> str
         lines.append(f"- 가격: {price_str}")
         lines.append(f"- 제조사: {manufacturer} (랭킹: {manufacturer_rank_str})")
         lines.append(f"- 카테고리: {category}")
+        lines.append(f"- 상품 URL: {product_url}")
         lines.append(f"- 추천 부품 수: {rec_count}")
-
+        
         if not recommendations:
             logger.warning(f"[format_product_recommendations] '{base_model_no}'은 추천이 없어 생략됨.")
     
@@ -63,6 +65,7 @@ def format_product_recommendations(neo4j_hits: Dict[str, Dict[str, Any]]) -> str
                 rec_rank_str = str(rec_rank) if rec_rank is not None else "정보 없음"
                 compatible_vehicles = rec.get("compatible_vehicles") or []
                 vehicles_str = ", ".join(compatible_vehicles) if compatible_vehicles else "정보 없음"
+                rec_product_url = rec.get("product_url", "정보 없음")
 
                 lines.append(f"\n  [추천 부품 {idx}]")
                 lines.append(f"  - 모델번호: {rec_model_no}")
@@ -70,6 +73,7 @@ def format_product_recommendations(neo4j_hits: Dict[str, Dict[str, Any]]) -> str
                 lines.append(f"  - 가격: {rec_price_str}")
                 lines.append(f"  - 제조사: {rec_manufacturer} (랭킹: {rec_rank_str})")
                 lines.append(f"  - 호환 차종: {vehicles_str}")
+                lines.append(f"  - 상품 URL: {rec_product_url}")
 
         lines.append("")
 
