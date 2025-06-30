@@ -18,6 +18,7 @@ class ChatState(TypedDict):
     trigger_plan_b: Optional[bool]
 
     # 상품 추천 관련
+    vehicle_fitment: Optional[str] = None
     product_model_no: Optional[List[Dict]]
     product_hits: Optional[List[Dict]]
     neo4j_hits: Optional[Dict[str, Dict]]

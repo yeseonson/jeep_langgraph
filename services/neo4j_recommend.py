@@ -16,7 +16,8 @@ def recommend_parts(graph: Neo4jGraph, input_model_nos: List[str], optional_quer
         optional_query = ""
 
     query = ("""
-             MATCH (basePart:Part {model_no: $input_model_no})
+            // 기준 부품 정보 조회 (필수)
+            MATCH (basePart:Part {model_no: $input_model_no})
             OPTIONAL MATCH (basePart)-[:MANUFACTURED_BY]->(baseManufacturer:Manufacturer)
             OPTIONAL MATCH (basePart)-[:BELONGS_TO]->(category:Category)
 
@@ -49,16 +50,16 @@ def recommend_parts(graph: Neo4jGraph, input_model_nos: List[str], optional_quer
             // 차종 호환성 체크 및 추천 부품 필터링
             WITH basePart, baseManufacturer, category, baseVehicles, isUniversalBase,
                 CASE 
-                WHEN recommendPart IS NOT NULL AND 
-                        (isUniversalBase OR isUniversalRec OR 
-                        ANY(v IN baseVehicles WHERE v IN recVehicles)) 
-                THEN {
-                    part: recommendPart,
-                    manufacturer: recManufacturer,
-                    vehicles: recVehicles,
-                    isUniversal: isUniversalRec
-                }
-                ELSE NULL
+                    WHEN recommendPart IS NOT NULL AND 
+                            (isUniversalBase OR isUniversalRec OR 
+                            ANY(v IN baseVehicles WHERE v IN recVehicles)) 
+                    THEN {
+                        part: recommendPart,
+                        manufacturer: recManufacturer,
+                        vehicles: recVehicles,
+                        isUniversal: isUniversalRec
+                    }
+                    ELSE NULL
                 END AS validRecommendation
 
             // 유효한 추천 부품만 수집하고 제한
@@ -66,18 +67,19 @@ def recommend_parts(graph: Neo4jGraph, input_model_nos: List[str], optional_quer
                 [rec IN COLLECT(validRecommendation) WHERE rec IS NOT NULL][0..2] AS limitedRecommendations
 
             RETURN 
-            basePart.model_no AS base_model_no,
-            basePart.name_ko AS base_name_ko,
-            COALESCE(baseManufacturer.name_en, 'Unknown') AS base_manufacturer_name,
-            COALESCE(baseManufacturer.ranking, 0) AS base_manufacturer_ranking,
-            COALESCE(category.name, 'Unknown') AS category_name,
-            basePart.price AS base_price,
-            isUniversalBase AS is_universal,
+                basePart.model_no AS base_model_no,
+                basePart.name_ko AS base_name_ko,
+                COALESCE(baseManufacturer.name_en, 'Unknown') AS base_manufacturer_name,
+                COALESCE(baseManufacturer.ranking, 0) AS base_manufacturer_ranking,
+                COALESCE(category.name, 'Unknown') AS category_name,
+                basePart.price AS base_price,
+                isUniversalBase AS is_universal,
             CASE 
                 WHEN isUniversalBase THEN ['all']
                 WHEN SIZE(baseVehicles) = 0 THEN ['N/A']
                 ELSE [v IN baseVehicles | v.model + ' (' + COALESCE(v.trim, 'Base') + ', ' + toString(v.year_start) + '-' + toString(COALESCE(v.year_end, 'Present')) + ')']
             END AS base_vehicles,
+            basePart.detail_url AS base_product_url,
             SIZE(limitedRecommendations) AS recommendation_count,
             [rec IN limitedRecommendations | {
                 model_no: rec.part.model_no,
@@ -90,7 +92,8 @@ def recommend_parts(graph: Neo4jGraph, input_model_nos: List[str], optional_quer
                 WHEN rec.isUniversal THEN ['all']
                 WHEN SIZE(rec.vehicles) = 0 THEN ['N/A']
                 ELSE [v IN rec.vehicles | v.model + ' (' + COALESCE(v.trim, 'Base') + ', ' + toString(v.year_start) + '-' + toString(COALESCE(v.year_end, 'Present')) + ')']
-                END
+                END,
+                product_url: rec.part.detail_url
             }] AS recommended_parts
                     """)
     
@@ -111,7 +114,8 @@ def recommend_parts(graph: Neo4jGraph, input_model_nos: List[str], optional_quer
                 #"manufacturer_weakness": row.get("rec_manufacturer_weakness"), 
                 "category_name": row["category_name"],
                 "base_price": row["base_price"],
-                "base_vehicles": row["base_vehicles"]
+                "base_vehicles": row["base_vehicles"],
+                "product_url": row["base_product_url"],
             },
             "recommendation_count": row["recommendation_count"],
             "recommendations": row["recommended_parts"]
@@ -130,7 +134,8 @@ def recommend_parts(graph: Neo4jGraph, input_model_nos: List[str], optional_quer
                 "manufacturer_weakness": None,
                 "category_name": None,
                 "base_price": None,
-                "base_vehicles": []
+                "base_vehicles": [],
+                "product_url": None,
             },
               "recommendation_count": 0,
               "recommendations": []
@@ -144,18 +149,23 @@ def print_recommendations(recommendations: Dict[str, Dict[str, Any]]):
     for base_model_no, result in recommendations.items():
         base_info = result["base_info"]
         recommendations_list = result["recommendations"]
+
         logger.info(f"=== [{base_model_no} 연관 추천 상품] ===")
         logger.info(f"기준 부품명: {base_info['name_ko']}")
         logger.info(f"카테고리: {base_info['category_name']}")
         logger.info(f"가격: ${base_info['base_price']}")
         logger.info(f"제조사: {base_info['manufacturer_name']}")
         logger.info(f"제조사 랭킹: {base_info.get('manufacturer_ranking')}")
+
         # 기준 부품의 적용 차종 정보 출력
         base_vehicles = base_info.get('base_vehicles', [])
         if base_vehicles:
             vehicles_str = ', '.join(base_vehicles)
             logger.info(f"적용 차종: {vehicles_str}")
+        
+        logger.info(f"상품 URL: {base_info['product_url']}")
         logger.info(f"추천 개수: {result['recommendation_count']}")
+
         if recommendations_list:
             logger.info("추천 부품:")
             for i, rec in enumerate(recommendations_list, 1):
@@ -166,7 +176,8 @@ def print_recommendations(recommendations: Dict[str, Dict[str, Any]]):
                 logger.info(f"- 제조사 랭킹: {rec.get('manufacturer_ranking')}")
                 if rec.get('compatible_vehicles'):
                     vehicles_str = ', '.join(rec['compatible_vehicles'])
-                    logger.info(f"- 적용 차종: {vehicles_str}")
+                    logger.info(f"- 적용 차종: {vehicles_str}"),
+                logger.info(f"- 상품 URL: {rec['product_url']}")
         else:
             logger.info("추천 부품: 없음")
 

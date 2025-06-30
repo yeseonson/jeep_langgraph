@@ -12,10 +12,12 @@ def product_search_node(state):
                 "output": "질문을 입력해주세요.",
                 "product_hits": []
             }
+        
+        vehicle_fitment = state.get("vehicle_fitment", None)
 
         product_search_service = JeepSearchService()
 
-        product_hits = product_search_service.search(query, size=PRODUCT_TOP_K)
+        product_hits = product_search_service.search(query, size=PRODUCT_TOP_K, vehicle_fitment=vehicle_fitment)
 
         return {
             **state,

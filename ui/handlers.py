@@ -10,7 +10,13 @@ from jeepchat.pipeline.main_graph import graph
 memory_manager = ChatMemoryManager()
 chat_manager = S3ChatHistoryManager()
 
-def run_pipeline_for_gradio(message: str, history: List[Dict[str, str]], user_id: str, thread_id: str | None):
+def run_pipeline_for_gradio(
+        user_input: str, 
+        history: List[Dict[str, str]], 
+        user_id: str, 
+        thread_id: str | None,
+        vehicle_fitment: str
+    ):
     try:
         if not thread_id:
             thread_id = generate_thread_id(user_id=user_id)
@@ -22,18 +28,22 @@ def run_pipeline_for_gradio(message: str, history: List[Dict[str, str]], user_id
             if previous_messages else False
         )
 
+        selected_vehicle = None if vehicle_fitment == "전체" else vehicle_fitment
+        logger.info(f"[run_pipeline_for_gradio] 선택된 차량: {selected_vehicle}")
+
         result = graph.invoke(
             input={
                 "user_id": user_id,
                 "thread_id": thread_id,
                 "message_id": message_id,
-                "user_input": message,
-                "is_clarify_followup": is_clarify_followup
+                "user_input": user_input,
+                "is_clarify_followup": is_clarify_followup,
+                "vehicle_fitment": selected_vehicle,
             }
         )
 
         output = result.get("output", "응답을 생성할 수 없습니다.")
-        history.append({"role": "user", "content": message})
+        history.append({"role": "user", "content": user_input})
         history.append({"role": "assistant", "content": output})
 
         updated_threads = chat_manager.get_user_threads(user_id)
