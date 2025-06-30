@@ -7,7 +7,7 @@ from jeepchat.services.model_loader import openai_response
 from jeepchat.services.chat_memory import ChatMemoryManager
 
 def generate_response_node(state: Dict[str, Any]) -> Dict[str, Any]:
-    query = state["user_input"]
+    user_input = state["user_input"]
     
     user_id = state["user_id"]
     thread_id = state["thread_id"]
@@ -27,10 +27,10 @@ def generate_response_node(state: Dict[str, Any]) -> Dict[str, Any]:
         {knowledge_summary}"""
 
         # LLM 호출하여 응답 생성
-        response = call_llm_with_context(user_query=query, context=final_context, conversation_history=conversation_history)
+        response = call_llm_with_context(user_input=user_input, context=final_context, conversation_history=conversation_history)
         if user_id and thread_id:
             message = {
-                "user_input": query,
+                "user_input": user_input,
                 "output": response,
                 "timestamp": datetime.now().isoformat(),
                 "type": "recommendation"
@@ -43,7 +43,7 @@ def generate_response_node(state: Dict[str, Any]) -> Dict[str, Any]:
         return {
             **state,
             "output": response,
-            'original_query': query
+            'original_query': user_input
         }
 
     except Exception as e:
@@ -53,10 +53,10 @@ def generate_response_node(state: Dict[str, Any]) -> Dict[str, Any]:
             "output": "죄송합니다. 처리 중 오류가 발생했습니다."
         }
     
-def call_llm_with_context(user_query: str, context: str, conversation_history: List[Dict] = []):
+def call_llm_with_context(user_input: str, context: str, conversation_history: List[Dict] = []):
     """컨텍스트와 함께 LLM 호출"""
 
-    if not user_query.strip() or not context.strip():
+    if not user_input.strip() or not context.strip():
         return "입력 정보가 부족합니다."
     
     history_context = ""
@@ -66,12 +66,12 @@ def call_llm_with_context(user_query: str, context: str, conversation_history: L
             f"사용자: {item['user']}\n시스템: {item['system']}" for item in recent_history
         ) + "\n"
 
-    prompt = product_recommend_prompt(history_context=history_context, context=context, user_query=user_query)
+    prompt = product_recommend_prompt(history_context=history_context, context=context, user_input=user_input)
 
     logger.info(f"history_context: {history_context}")
 
     try:
-        response = openai_response(system_prompt=prompt, user_input=user_query, max_tokens=1024)
+        response = openai_response(system_prompt=prompt, user_input=user_input, max_tokens=1024)
         return response
 
     except Exception as e:

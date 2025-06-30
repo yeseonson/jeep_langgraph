@@ -31,11 +31,11 @@ def summarize_knowledge_node(state: Dict[str, Any]) -> Dict[str, Any]:
             "output": "지식 검색 중 오류가 발생했습니다."
         }
 
-def summarize_knowledge_hits(query: str, documents: str) -> str:
+def summarize_knowledge_hits(user_input: str, documents: str) -> str:
     
-    summarization_prompt = generate_product_recommendation_prompt(query=query, documents=documents)
+    summarization_prompt = generate_product_recommendation_prompt(user_input=user_input, documents=documents)
     summary = openai_response(
-        system_prompt=knowledge_summary_system_prompt(),
+        system_prompt=knowledge_summary_system_prompt,
         user_input=summarization_prompt
     )
 
