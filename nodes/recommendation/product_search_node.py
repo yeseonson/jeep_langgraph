@@ -1,6 +1,7 @@
 from jeepchat.logger import logger
 from jeepchat.config.constants import PRODUCT_TOP_K
 from jeepchat.services.product_search import JeepSearchService
+from jeepchat.services.product_search_kw import JeepSearchServiceKW
 
 def product_search_node(state):
     try:
@@ -19,6 +20,18 @@ def product_search_node(state):
 
         product_hits = product_search_service.search(query, size=PRODUCT_TOP_K, vehicle_fitment=vehicle_fitment)
 
+        if not product_hits:
+            logger.info("[product_search_node] 기본 검색 결과 없음, 키워드 부스팅 검색 시도")
+            product_search_service = JeepSearchServiceKW()
+            product_hits = product_search_service.search(query_text=query, size=PRODUCT_TOP_K, vehicle_fitment=vehicle_fitment)
+
+        if not product_hits:
+            return {
+                **state,
+                "product_hits": [],
+                "output": "적절한 상품을 찾을 수 없습니다. 질문을 조금 더 구체적으로 입력해 주세요."
+            }
+        
         return {
             **state,
             "product_hits": product_hits
