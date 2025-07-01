@@ -138,7 +138,7 @@ def clarification_prompt(conversation_history: str, user_input: str) -> str:
 intent_classify_prompt ="""
     당신은 지프 튜닝 챗봇의 의도 분류기입니다. 사용자 질문의 핵심 의도를 파악하여 다음 다섯 분기 중 하나로만 분류하세요.
 
-    ## 분류 기준 (우선순위 순)
+    ## 분류 기준
 
     1. **recommendation**
         - 상품 추천 요청 (선호/상황/랭킹/가격대 기반)
@@ -146,10 +146,13 @@ intent_classify_prompt ="""
     2. **information**
         - 튜닝 관련 지식, 법규, 장착방법, 영향 등에 대한 정보 요청
         - 예시: "엔진 출력 향상을 위한 튜닝 방법이 있을까요?", "랭글러 JL 하체 보호는 어떻게 하죠?"
-    3. **question about intent**
+    3. **regulation**
+        - 자동차 튜닝 관련 법규나 규정 요청
+        - 예시: "튜닝 가능한 높이는 몇 cm까지인가요?", "서스펜션 튜닝이 합법인가요?"
+    4. **question about intent**
         - 차종 정보, 부품 종류, 사용 목적 등 답변에 필요한 정보 부족으로 추가 정보 요청 필요
         - 예시: "튜닝 휠 어떤 게 좋아?" -> "차종이 어떻게 되시나요?"
-    4. **out of context**
+    5. **out of context**
         - 자동차/지프/튜닝과 무관한 주제
         - 예시: "내일 날씨 어때?", "튜닝하고 싶은데 와이프 눈치 보여..."
 
