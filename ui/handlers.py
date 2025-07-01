@@ -18,6 +18,7 @@ def run_pipeline_for_gradio(
         vehicle_fitment: str
     ):
     try:
+        logger.debug(f"[handlers.py] user_id: {user_id}")
         if not thread_id:
             thread_id = generate_thread_id(user_id=user_id)
 

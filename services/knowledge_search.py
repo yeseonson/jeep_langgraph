@@ -129,6 +129,7 @@ def hybrid_search(query_text, top_k=TOP_K):
         
         elapsed_time = time.time() - start_time
         logger.info(f"Hybrid search completed: {len(results)} results, time elapsed: {elapsed_time:.2f} seconds")
+        logger.info(f"Hybrid search results: {results}")
         return results
         
     except Exception as e:
