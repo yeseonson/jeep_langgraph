@@ -16,15 +16,12 @@ def grade_documents_node(state: Dict[str, Any]) -> Dict[str, Any]:
     relevant_docs = []
     relevant_doc_count = 0
 
-    for hit in product_hits:
+    for i, hit in enumerate(product_hits):
         doc_text = format_base_info(hit)
-        print(f"doc_text: {doc_text}")
         grade = retrieval_grader(user_input=user_input, documents=doc_text)
-        logger.debug(f"[GradeDocuments] 문서 관련성 평가 결과: {grade}")
+        logger.info(f"문서 [{i}]: {doc_text}\n관련 여부: {grade}")
         
         if grade == 'yes':
-            logger.info("==== [GRADE: DOCUMENT RELEVANT] ====")
-            
             relevant_docs.append(hit)
             relevant_doc_count += 1
         else:
@@ -32,10 +29,9 @@ def grade_documents_node(state: Dict[str, Any]) -> Dict[str, Any]:
             continue
     
     logger.info(f"[GradeDocuments] 관련 문서 수: {relevant_doc_count}")
-    logger.info(f"[GradeDocuments] 관련 문서: {relevant_docs}")
 
-    if relevant_doc_count == 0:
-        logger.info("[GradeDocuments] 관련 문서가 없습니다. Neo4j Plan B 검색으로 이동합니다.")
+    if relevant_doc_count == 1:
+        logger.info("[GradeDocuments] 관련 문서가 부족합니다. Neo4j Plan B 검색으로 이동합니다.")
         return {
             **state,
             'relevant_docs': [],
@@ -65,10 +61,11 @@ def retrieval_grader(user_input: str, documents: str) -> str:
 def format_base_info(hit: Dict[str, Any]) -> str:
     return (
         f"model_no: {hit.get('model_no', '')}\n"
-        f"product_name_ko: {hit.get('name_ko', '')}\n"
+        f"product_name_ko: {hit.get('product_name_ko', '')}\n"
         f"score: {hit.get('score', 0)}\n"
         f"product_name: {hit.get('product_name', '')}\n"
-        f"price: ${hit.get('base_price', 0):.2f}\n"
         f"manufacturer: {hit.get('manufacturer_name', '')}\n"
+        f"price: ${hit.get('price', 0):.2f}\n"
         f"main_category: {hit.get('category_name', '')}"
+        f"product_url: {hit.get('product_url', '')}"
     )

@@ -33,8 +33,8 @@ def format_product_recommendations(neo4j_hits: Dict[str, Dict[str, Any]]) -> str
         recommendations = hit.get("recommendations", [])
 
         # 기준 부품 정보 추출 (누락 시 '정보 없음')
-        name_ko = base.get("name_ko", "정보 없음")
-        price = base.get("base_price")
+        name_ko = base.get("product_name_ko", "정보 없음")
+        price = base.get("price", "정보 없음")
         price_str = f"${price:.2f}" if isinstance(price, (int, float)) else "정보 없음"
         manufacturer = base.get("manufacturer_name", "정보 없음")
         manufacturer_rank = base.get("manufacturer_ranking")

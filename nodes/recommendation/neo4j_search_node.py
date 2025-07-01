@@ -10,9 +10,9 @@ def neo4j_plan_b_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
 def neo4j_search_node_common(state: Dict[str, Any], query_type: str = "same") -> Dict[str, Any]:
     try:
-        relevant_docs = state.get("relevant_docs", [])
-        if not relevant_docs:
-            logger.warning(f"[neo4j_search_node_common] relevant_docs가 비어 있어 product search를 건너뜁니다. (query_type={query_type})")
+        relevant_products = state.get("relevant_docs", [])
+        if not relevant_products:
+            logger.warning(f"[neo4j_search_node_common] relevant_products가 비어 있어 neo4j recommend를 건너뜁니다. (query_type={query_type})")
             return {
                 **state,
                 "neo4j_hits": {},
@@ -21,7 +21,7 @@ def neo4j_search_node_common(state: Dict[str, Any], query_type: str = "same") ->
         from jeepchat.config.constants import same_manufacturer_query, different_manufacturer_query
         optional_query = same_manufacturer_query if query_type == "same" else different_manufacturer_query
 
-        model_no_list = [item["model_no"] for item in relevant_docs if item.get("model_no")]
+        model_no_list = [item["model_no"] for item in relevant_products if item.get("model_no")]
         neo4j_hits = recommend_parts(graph=neo4j_graph(),
                                      input_model_nos=model_no_list,
                                      optional_query=optional_query)
