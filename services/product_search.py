@@ -6,8 +6,7 @@ from jeepchat.logger import logger
 from jeepchat.services.database import opensearch_client
 from jeepchat.services.model_loader import get_embedder
 from jeepchat.config.config import PRODUCT_INDEX_NAME
-
-TOP_K=5
+from jeepchat.config.constants import PRODUCT_TOP_K
 
 class JeepSearchService:
     def __init__(self):
@@ -49,7 +48,7 @@ class JeepSearchService:
         
         return replaced_unique 
     
-    def build_query_body(self, processed_query, query_vector, size: int = TOP_K, vehicle_fitment=None):
+    def build_query_body(self, processed_query, query_vector, size: int = PRODUCT_TOP_K, vehicle_fitment=None):
         bool_query = {
             "should": [
                 {
@@ -129,7 +128,7 @@ class JeepSearchService:
 
         return query_body
 
-    def search(self, query_text: str, size: int = TOP_K, vehicle_fitment=None) -> List[Dict[str, Any]]:
+    def search(self, query_text: str, size: int = PRODUCT_TOP_K, vehicle_fitment=None) -> List[Dict[str, Any]]:
         """사용자 쿼리를 분석하여 검색 쿼리 생성"""
         try:
             # 키워드 대체
@@ -179,5 +178,5 @@ class JeepSearchService:
 # 예시 실행
 if __name__ == "__main__":
     search_service = JeepSearchService()
-    results = search_service.search("글래디에이터 타이어", size=TOP_K)
+    results = search_service.search("글래디에이터 타이어", size=PRODUCT_TOP_K)
     print(results)
