@@ -1,11 +1,12 @@
 from jeepchat.services.model_loader import openai_response
 from jeepchat.services.chat_memory import ChatMemoryManager
 from jeepchat.config.prompts import clarification_prompt, info_check_prompt
+from jeepchat.state import ChatState
 from jeepchat.logger import logger
 from jeepchat.utils import generate_message_id
 from datetime import datetime
 
-def clarify_node(state):
+def clarify_node(state: ChatState):
     user_input = state["user_input"]
     user_id = state.get("user_id")
     thread_id = state.get("thread_id")

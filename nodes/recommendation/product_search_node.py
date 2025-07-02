@@ -2,8 +2,9 @@ from jeepchat.logger import logger
 from jeepchat.config.constants import PRODUCT_TOP_K
 from jeepchat.services.product_search import JeepSearchService
 from jeepchat.services.product_search_kw import JeepSearchServiceKW
+from jeepchat.state import ChatState
 
-def product_search_node(state):
+def product_search_node(state: ChatState):
     try:
         query = state.get("user_input", "")
 

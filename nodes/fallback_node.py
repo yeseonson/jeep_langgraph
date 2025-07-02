@@ -1,10 +1,11 @@
 from jeepchat.services.model_loader import openai_response
 from jeepchat.logger import logger
+from jeepchat.state import ChatState
 from jeepchat.services.chat_memory import ChatMemoryManager
 from jeepchat.utils import generate_message_id
 from datetime import datetime
 
-def fallback_node(state):
+def fallback_node(state: ChatState):
     query = state['user_input']
     user_id = state['user_id']
     thread_id = state['thread_id']

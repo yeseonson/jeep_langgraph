@@ -2,8 +2,9 @@ from typing import Dict, Any
 from jeepchat.logger import logger
 from jeepchat.services.model_loader import openai_response
 from jeepchat.config.prompts import generate_product_recommendation_prompt, knowledge_summary_system_prompt
+from jeepchat.state import ChatState
 
-def summarize_knowledge_node(state: Dict[str, Any]) -> Dict[str, Any]:
+def summarize_knowledge_node(state: ChatState) -> Dict[str, Any]:
     try:
         query = state['user_input']
         knowledge_hits = state.get("knowledge_hits", [])

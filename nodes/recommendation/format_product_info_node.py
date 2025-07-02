@@ -1,7 +1,8 @@
 from typing import Dict, Any
 from jeepchat.logger import logger
+from jeepchat.state import ChatState
 
-def format_product_info_node(state: Dict[str, Any]) -> Dict[str, Any]:
+def format_product_info_node(state: ChatState) -> Dict[str, Any]:
     try:
         neo4j_hits = state.get("neo4j_hits", {})
         product_info = format_product_recommendations(neo4j_hits=neo4j_hits)

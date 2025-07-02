@@ -5,8 +5,9 @@ from jeepchat.logger import logger
 from jeepchat.config.prompts import product_recommend_prompt
 from jeepchat.services.model_loader import openai_response
 from jeepchat.services.chat_memory import ChatMemoryManager
+from jeepchat.state import ChatState
 
-def generate_response_node(state: Dict[str, Any]) -> Dict[str, Any]:
+def generate_response_node(state: ChatState) -> Dict[str, Any]:
     user_input = state["user_input"]
     
     user_id = state["user_id"]

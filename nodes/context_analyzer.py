@@ -1,7 +1,8 @@
 from jeepchat.logger import logger
+from jeepchat.state import ChatState
 from jeepchat.config.prompts import relevance_prompt
 
-def analyze_context(state):
+def analyze_context(state: ChatState):
     """맥락 분석 노드 - 이전 대화와 연관성 판단"""
 
     from jeepchat.services.chat_memory import ChatMemoryManager

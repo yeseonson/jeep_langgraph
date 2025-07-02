@@ -1,4 +1,5 @@
 from jeepchat.logger import logger
+from jeepchat.state import ChatState
 from jeepchat.services.model_loader import openai_response
 from jeepchat.config.prompts import (
     intent_classify_prompt,
@@ -6,7 +7,7 @@ from jeepchat.config.prompts import (
     intent_context_relevance_instruction,
 )
 
-def router_node(state):
+def router_node(state: ChatState):
     user_input = state["user_input"]
     user_id = state["user_id"]
     thread_id = state["thread_id"]
