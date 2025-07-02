@@ -1,0 +1,47 @@
+from typing import TypedDict, Optional, List, Dict, Any
+from pydantic import BaseModel
+
+class BaseChatState(TypedDict):
+    user_id: str
+    thread_id: str
+    message_id: str
+    user_input: str
+    intent: Optional[str]
+    output: Optional[str]
+    context_relevant: Optional[bool]
+    is_followup: Optional[bool]
+    is_clarify_followup: Optional[bool]
+    conversation_history: Optional[List[Dict[str, str]]]
+    original_query: Optional[str]
+    trigger_plan_b: Optional[bool]
+
+
+class RecommendationState(TypedDict):
+    vehicle_fitment: Optional[str]
+    product_model_no: Optional[List[Dict]]
+    product_hits: Optional[List[Dict]]
+    neo4j_hits: Optional[Dict[str, Dict]]
+    product_info: Optional[str]
+    relevant_docs: Optional[Dict[str, Dict]]
+    knowledge_hits: Optional[List[Dict]]
+    knowledge_summary: Optional[str]
+
+
+class InformationState(TypedDict):
+    web_search: Optional[str]
+    documents: Optional[List[Dict]]
+
+
+class RegulationState(TypedDict):
+    regulation_admin_answer: Optional[str]
+    device_category: Optional[str]
+    is_minor_tuning: Optional[str]
+
+
+class ChatState(BaseChatState, RecommendationState, InformationState, RegulationState):
+    pass
+
+
+class Document(BaseModel):
+    page_content: str
+    metadata: Dict[str, Any] = {}
