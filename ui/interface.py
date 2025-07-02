@@ -31,7 +31,7 @@ def create_chat_interface():
             with gr.Column(scale=1):
                 gr.Markdown("## Jeep Chat")
                 user_id_text = gr.Textbox(label="사용자", value=default_user, interactive=False)
-                thread_selector = gr.Dropdown(label="목록", choices=chat_manager.get_user_threads(default_user))
+                thread_selector = gr.Dropdown(label="목록", choices=chat_manager.get_user_threads(default_user), allow_custom_value=True)
                 thread_status = gr.Textbox(label="상태", interactive=False)
                 new_thread_btn = gr.Button("새 채팅")
                 vehicle_selector = gr.Dropdown(
