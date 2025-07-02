@@ -1,11 +1,11 @@
 from langgraph.graph import StateGraph, END
-from jeepchat.schema import ChatState
+from jeepchat.state import ChatState
 
 # 세분화된 추천 노드들
 from jeepchat.nodes.recommendation.product_search_node import product_search_node
 from jeepchat.nodes.recommendation.neo4j_search_node import neo4j_search_node, neo4j_plan_b_node
 from jeepchat.nodes.recommendation.format_product_info_node import format_product_info_node
-from jeepchat.nodes.recommendation.grade_documents_node import grade_documents_node
+from jeepchat.nodes.recommendation.grade_products_node import grade_products_node
 from jeepchat.nodes.recommendation.knowledge_search_node import knowledge_search_node
 from jeepchat.nodes.recommendation.summarize_knowledge_node import summarize_knowledge_node
 from jeepchat.nodes.recommendation.generate_response_node import generate_response_node
@@ -14,7 +14,7 @@ def build_recommendation_graph():
     builder = StateGraph(ChatState)
 
     builder.add_node("product_search", product_search_node)
-    builder.add_node("grade_documents", grade_documents_node)
+    builder.add_node("grade_documents", grade_products_node)
     builder.add_node("neo4j_search", neo4j_search_node)
     builder.add_node("format_product_info", format_product_info_node)
     builder.add_node("neo4j_plan_b_search", neo4j_plan_b_node)
