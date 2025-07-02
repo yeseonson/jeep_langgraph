@@ -26,11 +26,11 @@ def hyperclova_response(system_prompt, user_input):
     return str(response.choices[0].message.content).strip()
 
 # --- OpenAI GPT-4o mini 설정 ---
-def openai_response(system_prompt, user_input, temperature=0.3, max_tokens=512):
+def openai_response(system_prompt, user_input, model_id=GPT_4O_MINI_MODEL_ID, temperature=0.3, max_tokens=1024):
     """OpenAI API를 호출하여 사용자 입력에 대한 응답 생성"""
 
     response = OPENAI_CLIENT.chat.completions.create(
-        model=str(GPT_4O_MINI_MODEL_ID),
+        model=model_id,
         messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_input}
@@ -40,6 +40,18 @@ def openai_response(system_prompt, user_input, temperature=0.3, max_tokens=512):
             
     )
     return str(response.choices[0].message.content).strip()
+
+def openai_response_with_function(system_prompt, user_input, functions, function_call):
+    response = OPENAI_CLIENT.chat.completions.create(
+        model=str(GPT_4O_MINI_MODEL_ID),
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_input}
+        ],
+        functions=functions,
+        function_call=function_call,
+    )
+    return response.choices[0].message.function_call.arguments
 
 # --- Qwen3-4B 설정 ---
 def qwen_response(system_prompt, user_input):
