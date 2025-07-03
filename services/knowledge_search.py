@@ -32,7 +32,7 @@ def semantic_search(query_text, top_k=TOP_K):
             }
         }
         
-        logger.debug(f"Search query: {json.dumps(search_query, ensure_ascii=False)}")
+        # logger.debug(f"Search query: {json.dumps(search_query, ensure_ascii=False)}")
         
         # Execute search
         logger.info(f"Executing search query on index '{KNOWLEDGE_INDEX_NAME}'...")
@@ -98,7 +98,7 @@ def hybrid_search(query_text, top_k=TOP_K):
                             "weight": 50
                         }
                     ],
-                    "score_mode": "max",
+                    "score_mode": "sum",
                     "boost_mode": "multiply"
                 }
             }
@@ -106,7 +106,7 @@ def hybrid_search(query_text, top_k=TOP_K):
         
         text_query = search_query.get('query', {}).get('function_score', {}).get('query', {})
 
-        logger.debug(f"Hybrid search query: {json.dumps(text_query, ensure_ascii=False)}")
+        # logger.debug(f"Hybrid search query: {json.dumps(text_query, ensure_ascii=False)}")
         logger.debug(f"Search size: {search_query.get('size', 'default')}")
         
         # Execute search

@@ -1,12 +1,13 @@
 from typing import Dict, Any
 from jeepchat.logger import logger
-from jeepchat.services.knowledge_search import hybrid_search
+from jeepchat.services.knowledge_search import semantic_search
 from jeepchat.config.constants import KNOWLEDGE_TOP_K
+from jeepchat.state import ChatState
 
-def knowledge_search_node(state: Dict[str, Any]) -> Dict[str, Any]:
+def knowledge_search_node(state: ChatState) -> Dict[str, Any]:
     try:
         query = state["user_input"]
-        knowledge_hits = hybrid_search(query, top_k=KNOWLEDGE_TOP_K)
+        knowledge_hits = semantic_search(query, top_k=KNOWLEDGE_TOP_K)
         
         if not knowledge_hits:
             logger.warning("[knowledge_search_node] knowledge_hits가 비어 있어 지식 검색 단계를 건너뜁니다.")
