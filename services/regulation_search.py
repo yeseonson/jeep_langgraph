@@ -5,13 +5,7 @@ from jeepchat.config.config import REGULATION_INDEX_NAME
 from jeepchat.services.model_loader import get_embedder
 from jeepchat.services.database import opensearch_client
 
-try:
-    embedder = get_embedder()
-    logger.info("SentenceTransformer model loaded successfully")
-except Exception as e:
-    logger.error(f"Failed to load SentenceTransformer model: {e}")
-    raise
-
+embedder = get_embedder()
 #일반 시멘틱 서치
 def semantic_search(query_text, top_k=3):
     logger.info(f"Starting semantic search: '{query_text}', top_k={top_k}")
@@ -35,8 +29,6 @@ def semantic_search(query_text, top_k=3):
             }
         }
         
-        logger.debug(f"Search query: {json.dumps(search_query, ensure_ascii=False)}")
-        
         # Execute search
         logger.info(f"Executing search query on index '{REGULATION_INDEX_NAME}'...")
         response = client.search(
@@ -56,6 +48,7 @@ def semantic_search(query_text, top_k=3):
         
         elapsed_time = time.time() - start_time
         logger.info(f"Semantic search completed: {len(results)} results, time elapsed: {elapsed_time:.2f} seconds")
+        logger.info(f"Semantic search results: {results}") # 변경 필요
         return results
         
     except Exception as e:
@@ -92,7 +85,7 @@ def run_filtering_search(filter_dict: dict, top_k=5):
             }
         }
 
-        logger.debug(f"Filtering search query: {json.dumps(search_query, ensure_ascii=False)}")
+        # logger.debug(f"Filtering search query: {json.dumps(search_query, ensure_ascii=False)}")
         logger.info(f"Executing filtering search on index '{REGULATION_INDEX_NAME}'...")
 
         response = client.search(index=REGULATION_INDEX_NAME, body=search_query)
@@ -102,6 +95,7 @@ def run_filtering_search(filter_dict: dict, top_k=5):
 
         elapsed_time = time.time() - start_time
         logger.info(f"Filtering search completed: {len(results)} results, time elapsed: {elapsed_time:.2f} seconds")
+        logger.info(f"Filtering search results: {results}")
         return results
 
     except Exception as e:
@@ -173,7 +167,7 @@ def hybrid_search_filtering(question, filterring, top_k=5):
             }
         }
 
-        logger.debug(f"Hybrid search query: {json.dumps(search_query, ensure_ascii=False)}")
+        # logger.debug(f"Hybrid search query: {json.dumps(search_query, ensure_ascii=False)}")
         logger.info(f"Executing hybrid filtering search on index '{REGULATION_INDEX_NAME}'...")
 
         response = client.search(index=REGULATION_INDEX_NAME, body=search_query)
@@ -186,6 +180,7 @@ def hybrid_search_filtering(question, filterring, top_k=5):
 
         elapsed_time = time.time() - start_time
         logger.info(f"Hybrid filtering search completed: {len(results)} results in {elapsed_time:.2f} sec")
+        logger.info(f"Hybrid filtering search results: {results}")
         return results
 
     except Exception as e:
