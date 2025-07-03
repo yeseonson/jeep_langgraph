@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import time
-import json
+# import json
 from typing import Dict, Any, List
 from jeepchat.logger import logger
 from jeepchat.services.database import opensearch_client
@@ -21,34 +21,39 @@ class JeepSearchService:
             "암대": "Long Arm",
             "8암대": "8 inch Long Arm",
             "데후": "Differential Gear",
-            "데루등": "Tail Lamp"
+            "데루등": "Tail Lamp",
+            "단통": "Monotube",
+            "루프랙": "Roof Rack",
+            "휠": "Wheel",
+            "타이어": "Tire",
+            "브레이크": "Brake",
+            "서스펜션": "Suspension",
+            "휠하우스": "Wheel House",
+            "범퍼": "Bumper",
+            "스텝바": "Step Bar",
+            "스키드플레이트": "Skid Plate",
+            "윈드쉴드": "Windshield",
+            "스노클": "Snorkel",
+            "라이트바": "Light Bar", 
+            "하드탑": "Hard Top", 
+            "소프트탑": "Soft Top", 
         }
 
-    def replace_keywords(self, keywords: List[str]) -> List[str]:
-        """추출된 키워드를 상품명 검색에 적합한 대체 키워드로 변환"""
-        replaced_keywords = []
-        original_keywords = set(keywords)  # 원본 키워드 유지
-        
-        for keyword in keywords:
-            replaced_keywords.append(keyword)  # 원본 키워드 유지
-            
-            # 키워드 대체 사전에 있는 경우 대체 키워드 추가
-            if keyword in self.keyword_replacements:
-                replacement = self.keyword_replacements[keyword]
-                replaced_keywords.append(replacement)
-                logger.debug(f"Keyword replacement: '{keyword}' -> '{replacement}'")
-        
-        # 중복 제거 및 로깅
-        replaced_unique = list(dict.fromkeys(replaced_keywords))
-        
-        # 추가된 대체 키워드 로깅
-        added_keywords = set(replaced_unique) - original_keywords
-        if added_keywords:
-            logger.debug(f"Added replacement keywords: {added_keywords}")
-        
-        return replaced_unique 
+    def replace_keywords(self, query_text: str) -> str:
+        """질문 내에 부품 키워드가 포함되어 있으면 대체 키워드를 함께 추가"""
+        replacements = []
+
+        for keyword, replacement in self.keyword_replacements.items():
+            if keyword in query_text:
+                replacements.append(replacement)
+                logger.debug(f"'{keyword}' found in query_text → '{replacement}' added")
+
+        # 최종 검색어는 원문 + 추가 키워드
+        extended_query = f"{query_text} {' '.join(replacements)}" if replacements else query_text
+        return extended_query
     
     def build_query_body(self, processed_query, query_vector, size: int = PRODUCT_TOP_K, vehicle_fitment=None):
+        """사용자 쿼리를 분석하여 검색 쿼리 생성"""
         bool_query = {
             "should": [
                 {
@@ -59,7 +64,7 @@ class JeepSearchService:
                                     "product_name_ko": {
                                         "query": processed_query,
                                         "boost": 1,
-                                        "minimum_should_match": "5%"
+                                        "minimum_should_match": "1"
                                     }
                                 }
                             },
@@ -68,7 +73,7 @@ class JeepSearchService:
                                     "product_name": {
                                         "query": processed_query,
                                         "boost": 1,
-                                        "minimum_should_match": "5%"
+                                        "minimum_should_match": "1"
                                     }
                                 }
                             },
@@ -77,7 +82,7 @@ class JeepSearchService:
                                     "keywords": {
                                         "query": processed_query,
                                         "boost": 2,
-                                        "minimum_should_match": "5%"
+                                        "minimum_should_match": "1"
                                     }
                                 }
                             },
@@ -89,13 +94,18 @@ class JeepSearchService:
 
         # vehicle_fitment 값이 주어진 경우 filter 조건 추가
         if vehicle_fitment:
-            bool_query["filter"] = [
-                {
-                    "match_phrase": {
-                        "vehicle_fitment": vehicle_fitment
-                    }
+            bool_query.setdefault("filter", [])
+            
+            bool_query["should"].append({
+                "match_phrase": {
+                    "vehicle_fitment": vehicle_fitment
                 }
-            ]
+            })
+            bool_query["should"].append({
+                "term": {
+                    "vehicle_fitment.keyword": "all"
+                }
+            })
 
         query_body = {
             "size": size,
@@ -129,22 +139,25 @@ class JeepSearchService:
         return query_body
 
     def search(self, query_text: str, size: int = PRODUCT_TOP_K, vehicle_fitment=None) -> List[Dict[str, Any]]:
-        """사용자 쿼리를 분석하여 검색 쿼리 생성"""
+        """오픈서치 상품검색 실행"""
         try:
+            if vehicle_fitment:
+                logger.info(f"Starting product search: '{query_text}', top_k={size}, vehicle_fitment='{vehicle_fitment}'")
+            else:
+                logger.info(f"Starting product search: '{query_text}', top_k={size}")
+                
             # 키워드 대체
-            keywords = query_text.split()
-            replaced_keywords = self.replace_keywords(keywords)
-            processed_query = " ".join(replaced_keywords)
+            processed_query = self.replace_keywords(query_text)
 
             logger.debug(f"Original query: {query_text}")
-            logger.debug(f"Replaced query: {processed_query}")
+            logger.info(f"Processed query: {processed_query}")
 
             query_vector = self.embedder.encode(processed_query, batch_size=8).tolist()
             query_body = self.build_query_body(processed_query, query_vector, size, vehicle_fitment)
 
             text_query = query_body.get('query', {}).get('function_score', {}).get('query', {})
 
-            logger.debug(f"Opensearch query: {json.dumps(text_query, ensure_ascii=False)}")
+            #logger.debug(f"Opensearch query: {json.dumps(text_query, ensure_ascii=False)}")
             logger.debug(f"Search size: {query_body.get('size', 'default')}")
 
             start_time = time.time()
