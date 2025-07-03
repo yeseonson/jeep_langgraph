@@ -27,7 +27,7 @@ def get_grade_documents_schema():
         }
     }
 
-def retrieval_grader(user_input: str, documents: str) -> str:
+def retrieval_grader(user_input: str, documents: str) -> GradeDocuments:
     schema = get_grade_documents_schema()
     system_prompt, user_prompt = retrieval_grader_prompt(user_input, documents)
     
