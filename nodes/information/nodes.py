@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
-from jeepchat.state import ChatState, Document
+from datetime import datetime
+from jeepchat.state import ChatState
 from jeepchat.nodes.information.chains import retrieval_grader, generate_answer, question_rewriter
 from jeepchat.services.web_search import web_search_tool
 from jeepchat.services.knowledge_search import hybrid_search, semantic_search
@@ -11,7 +12,7 @@ from typing import Dict, Any
 
 # 문서 검색 노드
 def retrieve(state: ChatState):
-    logger.info("\n==== RETRIEVE ====\n")
+    logger.info("==== RETRIEVE ====\n")
     user_input = state['user_input']
     
     # 문서 검색 수행
@@ -22,12 +23,19 @@ def retrieve(state: ChatState):
 
 # 답변 생성 노드
 def generate(state: ChatState) -> Dict[str, Any]:
-    logger.info("\n==== GENERATE ====\n")
+    logger.info("==== GENERATE ====\n")
     user_input = state['user_input']
     documents = state.get('documents', [])
     
     # RAG를 사용한 답변 생성
-    generation = generate_answer(user_input, documents)
+    # TODO: [CHECK] documents_text 작업이 필요한지 확인
+    documents_text = ""
+    if documents:
+        documents_text = "\n\n".join([doc.get('document', '') for doc in documents])
+    
+    generation = generate_answer(user_input, documents_text)
+    
+    logger.info(f"[generate] 생성된 답변: {generation}")
     
     # 대화 메모리에 저장
     memory_manager = ChatMemoryManager()
@@ -35,7 +43,9 @@ def generate(state: ChatState) -> Dict[str, Any]:
     
     message_data = {
         "user_input": user_input,
-        "output": generation
+        "output": generation,
+        "timestamp": datetime.now().isoformat(),
+        "type": "information"
     }
     
     memory_manager.save_message(
@@ -51,19 +61,22 @@ def generate(state: ChatState) -> Dict[str, Any]:
 
 # 쿼리 재작성 노드
 def query_rewrite(state: ChatState):
-    logger.info("\n==== [REWRITE QUERY] ====\n")
+    logger.info("==== [REWRITE QUERY] ====\n")
     user_input = state['user_input']
     
     # 질문 재작성
     rewritten = question_rewriter(user_input)
     logger.info(f"[QueryRewrite] 재작성된 질문: {rewritten}...")
-    return {"user_input": rewritten}
+    return {"query_rewritten": rewritten}
 
 # 문서 평가 노드
 def grade_documents(state: ChatState):
-    logger.info("\n==== [CHECK DOCUMENT RELEVANCE TO QUESTION] ====\n")
+    logger.info("==== [CHECK DOCUMENT RELEVANCE TO QUESTION] ====\n")
     user_input = state['user_input']
-    documents = state['documents']
+    documents = state.get('documents', [])
+
+    if not documents:
+        return {'documents': [], 'web_search': 'Yes'}
 
     # 평가 함수 (grade, doc 반환)
     def eval_doc(d):
@@ -95,17 +108,29 @@ def grade_documents(state: ChatState):
 
 # 웹 검색 노드
 def web_search(state: ChatState):
-    logger.info("\n==== [WEB SEARCH] ====\n")
-    user_input = state['user_input']
-    documents = state['documents']
+    logger.info("==== [WEB SEARCH] ====\n")
+    rewritten_user_input = state['query_rewritten']
+    documents = state.get('documents', [])
 
     # 웹 검색 수행
-    docs = web_search_tool(user_input, max_results=3)
+    docs = web_search_tool(rewritten_user_input, max_results=3)
     
     # 검색 결과를 문서 형식으로 변환
-    web_results = "\n".join(d['content'] for d in docs)
-    web_results = Document(page_content=web_results)
-    documents.append(web_results)
-    logger.info(f"[Documents] 웹 검색 결과: {documents}...")
+    if docs and isinstance(docs, list):
+        web_results = "\n".join(d.get('content', '') for d in docs)
+        
+        # 기존 형식과 맞춰서 Dict로 변환
+        web_doc = {
+            'document': web_results,
+            'source': 'web_search'
+        }
+        
+        # documents가 리스트인지 확인하고 추가
+        if isinstance(documents, list):
+            documents.append(web_doc)
+        else:
+            documents = [web_doc]
+        
+        logger.info(f"[Documents] 웹 검색 결과: {documents}...")
 
     return {"documents": documents}
