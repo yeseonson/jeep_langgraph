@@ -1,5 +1,6 @@
 import gradio as gr
 from typing import List, Dict
+import time
 
 from jeepchat.logger import logger
 from jeepchat.services.chat_memory import ChatMemoryManager
@@ -32,6 +33,7 @@ def run_pipeline_for_gradio(
         selected_vehicle = None if vehicle_fitment == "전체" else vehicle_fitment
         logger.info(f"[run_pipeline_for_gradio] 선택된 차량: {selected_vehicle}")
 
+        start_time = time.time()
         result = graph.invoke(
             input={
                 "user_id": user_id,
@@ -42,6 +44,8 @@ def run_pipeline_for_gradio(
                 "vehicle_fitment": selected_vehicle,
             }
         )
+        elapsed = time.time() - start_time
+        logger.info(f"[run_pipeline_for_gradio] graph.invoke 실행 시간: {elapsed:.2f}초")
 
         output = result.get("output", "응답을 생성할 수 없습니다.")
         history.append({"role": "user", "content": user_input})
