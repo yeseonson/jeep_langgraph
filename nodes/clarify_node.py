@@ -17,10 +17,10 @@ def clarify_node(state: ChatState):
     logger.info(f"conversation history: {conversation_history}")
 
     # 먼저 충분한 정보가 있는지 확인
-    info_check = info_check_prompt(conversation_history=conversation_history, query=user_input)
+    prompt = info_check_prompt(conversation_history=conversation_history, user_input=user_input)
     
     try:
-        info_check = openai_response(system_prompt=info_check_prompt, user_input=user_input)
+        info_check = openai_response(system_prompt=prompt, user_input=user_input)
         
         # 충분한 정보가 있는 경우 -> 라우터 노드로 이동 필요
         if info_check.strip().lower() == 'sufficient':
@@ -31,9 +31,9 @@ def clarify_node(state: ChatState):
             }
         
         # 추가 정보가 필요한 경우
-        prompt = clarification_prompt(conversation_history=conversation_history, query=user_input)
+        clarify_prompt = clarification_prompt(conversation_history=conversation_history, query=user_input)
         
-        response = openai_response(system_prompt=prompt, user_input=user_input)
+        response = openai_response(system_prompt=clarify_prompt, user_input=user_input)
         
         # Save the clarification question to chat memory
         if user_id and thread_id:
