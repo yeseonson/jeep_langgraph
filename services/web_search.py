@@ -4,7 +4,7 @@ from langchain_teddynote.tools.tavily import TavilySearch
 from jeepchat.config.config import TAVILY_API_KEY
 from tavily import TavilyClient
 
-def web_search_tool(user_input: str, max_results: int = 3) -> str:
+def web_search_tool(user_input: str, max_results: int = 3):
     web_search = TavilySearch(max_results=max_results, api_key=TAVILY_API_KEY)
     
     # 웹 검색 도구 실행
@@ -48,7 +48,7 @@ def tavily_search_node(question: str, category: str = None) -> str:
     """GPT로 쿼리 생성 + Tavily 검색"""
 
     query_for_tavily = openai_response(system_prompt=web_search_query_generator_prompt,
-                                       user_prompt=f"Q: {question}\nA:",
+                                       user_input=f"Q: {question}\nA:",
                                        temperature=0)
     # 결과 1: 쿼리 기반 검색
     result_query = tavily_search(query_for_tavily)
