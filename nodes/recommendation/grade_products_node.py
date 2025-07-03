@@ -41,7 +41,7 @@ def grade_products_node(state: ChatState) -> Dict[str, Any]:
         logger.info("[GradeDocuments] 관련 문서가 부족합니다. Neo4j Plan B 검색으로 이동합니다.")
         return {
             **state,
-            'relevant_docs': [],
+            'relevant_docs': relevant_docs,
             'trigger_plan_b': True
         }
     return {

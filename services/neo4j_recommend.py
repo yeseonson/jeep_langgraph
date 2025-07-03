@@ -109,9 +109,7 @@ def recommend_parts(graph: Neo4jGraph, input_model_nos: List[str], optional_quer
                 "model_no": row["base_model_no"],
                 "name_ko": row["base_name_ko"],
                 "manufacturer_name": row["base_manufacturer_name"],
-                "manufacturer_ranking": row.get("base_manufacturer_ranking"), # 없을 경우 None
-                #"manufacturer_strength": row.get("rec_manufacturer_strength"), 
-                #"manufacturer_weakness": row.get("rec_manufacturer_weakness"), 
+                "manufacturer_ranking": row.get("base_manufacturer_ranking"),
                 "category_name": row["category_name"],
                 "base_price": row["base_price"],
                 "base_vehicles": row["base_vehicles"],
