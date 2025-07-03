@@ -12,7 +12,7 @@ from jeepchat.nodes.regulation.nodes import (
     major_tuning_node
 )
 
-def build_regulation_graph() -> StateGraph:
+def build_regulation_graph():
     builder = StateGraph(ChatState)
 
     builder.add_node("is_process_admin", is_process_administrative_step_node)
@@ -29,7 +29,7 @@ def build_regulation_graph() -> StateGraph:
         return "process_admin" if answer in ("네", "예") else "classify_device"
     
     def route_device_category(state: ChatState) -> str:
-        device_category = state.get("device_category", "")
+        device_category = state.get("device_category") or ""
         parts = device_category.split(".", 1)
 
         code = parts[0].strip() if len(parts) > 0 else ""
