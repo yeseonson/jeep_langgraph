@@ -1,7 +1,9 @@
 
-from jeepchat.config.config import OPENAI_CLIENT, GPT_4O_MINI_MODEL_ID, QWEN3_4B_MODEL_ID, HYPERCLOVA_3B_MODEL_ID
+import os
+from jeepchat.config.config import OPENAI_CLIENT, GPT_4O_MINI_MODEL_ID, QWEN3_4B_MODEL_ID, HYPERCLOVA_3B_MODEL_ID, HF_HOME
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
+from jeepchat.logger import logger
 
 def hyperclova_response(system_prompt, user_input):
     client = OpenAI(api_key="EMPTY",
@@ -28,7 +30,6 @@ def hyperclova_response(system_prompt, user_input):
 # --- OpenAI GPT-4o mini 설정 ---
 def openai_response(system_prompt, user_input, model_id=GPT_4O_MINI_MODEL_ID, temperature=0.3, max_tokens=1024):
     """OpenAI API를 호출하여 사용자 입력에 대한 응답 생성"""
-
     response = OPENAI_CLIENT.chat.completions.create(
         model=model_id,
         messages=[
@@ -39,6 +40,9 @@ def openai_response(system_prompt, user_input, model_id=GPT_4O_MINI_MODEL_ID, te
             max_tokens=max_tokens,
             
     )
+    usage = response.usage
+    logger.debug(f"[OPENAI CALL] model={model_id}, prompt_len={len(system_prompt)}, user_input_len={len(user_input)}, usage={usage}")
+    
     return str(response.choices[0].message.content).strip()
 
 def openai_response_with_function(system_prompt, user_input, functions, function_call):
@@ -69,7 +73,15 @@ def qwen_response(system_prompt, user_input):
     )
     return str(response.choices[0].message.content).strip()
 
+
 # --- 임베딩 모델 ---
+_embedder_cache = None
+
 def get_embedder():
-    """임베딩 모델을 반환"""
-    return SentenceTransformer("BAAI/bge-m3")
+    """임베딩 모델을 반환 (싱글톤 패턴)"""
+    global _embedder_cache
+    if _embedder_cache is None:
+        logger.info("Loading embedding model for the first time...")
+        _embedder_cache = SentenceTransformer("BAAI/bge-m3")
+        logger.info("Embedding model loaded successfully")
+    return _embedder_cache
