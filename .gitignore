@@ -12,3 +12,6 @@ archive/
 
 # gradio 설정 파일 무시
 .gradio/
+
+# 모델 캐시 디렉토리
+cache/
