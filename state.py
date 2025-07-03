@@ -28,6 +28,7 @@ class RecommendationState(TypedDict):
 
 
 class InformationState(TypedDict):
+    query_rewritten: Optional[str]
     web_search: Optional[str]
     documents: Optional[List[Dict]]
 
