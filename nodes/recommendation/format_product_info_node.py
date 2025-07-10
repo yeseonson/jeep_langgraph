@@ -35,17 +35,21 @@ def format_product_recommendations(neo4j_hits: Dict[str, Dict[str, Any]]) -> str
 
         # 기준 부품 정보 추출 (누락 시 '정보 없음')
         name_ko = base.get("name_ko", "정보 없음")
+        name_en = base.get("name_en", "정보 없음")
         price = base.get("base_price", "정보 없음")
         price_str = f"${price:.2f}" if isinstance(price, (int, float)) else "정보 없음"
         manufacturer = base.get("manufacturer_name", "정보 없음")
-        manufacturer_rank = base.get("manufacturer_ranking")
-        manufacturer_rank_str = str(manufacturer_rank) if manufacturer_rank is not None else "정보 없음"
+        manufacturer_rank = base.get("manufacturer_ranking", "정보 없음")
+        manufacturer_rank_str = (
+            str(manufacturer_rank) if manufacturer_rank not in [None, 0] else "정보 없음"
+        )
         category = base.get("category_name", "정보 없음")
         product_url = base.get("product_url", "정보 없음")
-        rec_count = hit.get("recommendation_count", 0)
+        rec_count = hit.get("recommendation_count", "정보 없음")
 
         lines.append(f"[기준 부품] {base_model_no}")
         lines.append(f"- 제품명: {name_ko}")
+        lines.append(f"- 영문 제품명: {name_en}")
         lines.append(f"- 가격: {price_str}")
         lines.append(f"- 제조사: {manufacturer} (랭킹: {manufacturer_rank_str})")
         lines.append(f"- 카테고리: {category}")
@@ -59,11 +63,14 @@ def format_product_recommendations(neo4j_hits: Dict[str, Dict[str, Any]]) -> str
             for idx, rec in enumerate(recommendations, 1):
                 rec_model_no = rec.get("model_no", "정보 없음")
                 rec_name_ko = rec.get("name_ko", "정보 없음")
+                rec_name_en = rec.get("name_en", "정보 없음")
                 rec_price = rec.get("price")
                 rec_price_str = f"${rec_price:.2f}" if isinstance(rec_price, (int, float)) else "정보 없음"
                 rec_manufacturer = rec.get("manufacturer_name", "정보 없음")
-                rec_rank = rec.get("manufacturer_ranking")
-                rec_rank_str = str(rec_rank) if rec_rank is not None else "정보 없음"
+                rec_rank = rec.get("manufacturer_ranking", "정보 없음")
+                rec_rank_str = (
+                    str(rec_rank) if rec_rank not in [None, 0] else "정보 없음"
+                )
                 compatible_vehicles = rec.get("compatible_vehicles") or []
                 vehicles_str = ", ".join(compatible_vehicles) if compatible_vehicles else "정보 없음"
                 rec_product_url = rec.get("product_url", "정보 없음")
@@ -71,6 +78,7 @@ def format_product_recommendations(neo4j_hits: Dict[str, Dict[str, Any]]) -> str
                 lines.append(f"\n  [추천 부품 {idx}]")
                 lines.append(f"  - 모델번호: {rec_model_no}")
                 lines.append(f"  - 제품명: {rec_name_ko}")
+                lines.append(f"  - 영문 제품명: {rec_name_en}")
                 lines.append(f"  - 가격: {rec_price_str}")
                 lines.append(f"  - 제조사: {rec_manufacturer} (랭킹: {rec_rank_str})")
                 lines.append(f"  - 호환 차종: {vehicles_str}")
