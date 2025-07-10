@@ -2,13 +2,13 @@ import logging
 import os
 from datetime import datetime
 
-def get_logger(name: str = "jeepchat") -> logging.Logger:
+def get_logger(name: str = "jeepchat_ko") -> logging.Logger:
     # 로그 디렉토리 및 파일 경로 설정
     log_dir = "/usr/local/src/log"
     os.makedirs(log_dir, exist_ok=True)
 
     date_str = datetime.now().strftime("%Y%m%d")
-    log_file = os.path.join(log_dir, f"langgraph_{date_str}.log")
+    log_file = os.path.join(log_dir, f"jeepchat_ko_{date_str}.log")
 
     # 로그 레벨: 환경 변수 또는 기본값 DEBUG
     log_level_str = os.getenv("LOG_LEVEL", "DEBUG").upper()
