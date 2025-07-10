@@ -1,9 +1,9 @@
-def info_check_prompt(conversation_history: str, user_input: str) -> str:
+def info_check_prompt(history_context: str, user_input: str) -> str:
     return f"""<|im_start|>system
             당신은 지프 튜닝 전문가 챗봇입니다.
             사용자의 질문에 답변하기 위해 충분한 정보가 있는지 확인해주세요.
             충분한 정보가 있으면 'sufficient'로, 부족하면 'insufficient'로 답해주세요.
-            {conversation_history}
+            {history_context}
             <|im_end|>
             <|im_start|>user
             사용자 질문: "{user_input}"
@@ -50,27 +50,33 @@ def product_recommend_prompt(history_context, context, user_input) -> str:
             - 사용자의 질문(`user_query`)이 **100% 영문으로만 구성된 경우**, 답변도 **영어로 작성**해 주세요.
             - 그렇지 않은 경우에는 **한국어로 작성**해 주세요.
 
-            답변 시 다음 사항을 고려해주세요:
-            1. 제품 추천
-            - 추천 제품의 구체적인 특징과 장점을 설명
-            - 호환성 정보가 있다면 반드시 언급
-            - 가격 정보가 있다면 포함
-            - 제품의 주요 사용 사례나 적합한 상황 설명
+            답변 시 다음 지침을 반드시 따르세요:
+
+           1. 제품 추천 (다양한 기준 기반 추천 포함)
+            - **반드시 제품 정보에 포함된 상품만 추천**하세요.
+            - 사용자가 찾는 제품이 제품 정보에 없는 경우, **가장 유사한 대체 제품을 찾아 추천**하고 그 이유를 설명하세요.
+            - 제품은 다음과 같은 기준에 따라 나누어 최대한 다양하게 추천해 주세요 (모든 기준에 해당하는 제품이 없을 경우 일부만 사용해도 무방합니다):
+                - 가성비 중심 추천
+                - 설치가 쉬운 제품
+                - 오프로드 성능이 우수한 제품
+                - 강한 내구성을 가진 제품
+                - 고급 옵션 또는 프리미엄 제품
+            - 각 제품별로 다음 정보를 포함해 주세요:
+                - 제품 특징과 장점
+                - 상품 링크, 호환성 정보
+                - 가격
+                - 주요 사용 사례 또는 적합한 환경
 
             2. 관련 지식 정보
-            - 제품 사용 시 주의사항이나 팁
-            - 설치나 사용에 관련된 기술적 정보
-            - 법규나 규정 관련 정보
-            - 다른 사용자들의 경험이나 추천 사항
+            - 추천 제품의 활용에 도움이 되는 주의사항, 팁, 기술 정보, 법규, 사용자 경험 등을 제공하세요.
+            - 단, 관련 지식 정보는 제품 추천의 보완 설명으로만 사용하고, 단독 추천의 근거로 사용하지 마세요.
 
             3. 종합적인 조언
-            - 제품 선택 시 고려해야 할 추가 사항
-            - 대안 제품이나 관련 제품 추천
-            - 구매 전 확인해야 할 사항
-            - 설치나 사용 시 필요한 추가 부품이나 도구<|im_end|>
+            - 제품 선택 시 고려해야 할 추가 사항, 대안 제품, 관련 제품, 구매 전 확인 사항, 설치나 사용 시 필요한 도구 등을 포함해 조언하세요.
+            <|im_end|>
             <|im_start|>user
             {history_context}
-            
+
             다음은 관련 정보입니다:
 
             {context}
@@ -80,10 +86,10 @@ def product_recommend_prompt(history_context, context, user_input) -> str:
     return prompt
 
 # 맥락 분석 노드 (context_analyzer.py)
-def relevance_prompt(conversation_history: str, user_input: str, vehicle_fitment: str) -> str:
+def relevance_prompt(history_context: str, user_input: str, vehicle_fitment: str) -> str:
     prompt = f"""
             이전 대화:
-            {conversation_history}
+            {history_context}
 
             현재 질문:
             {user_input}
@@ -121,13 +127,22 @@ def relevance_prompt(conversation_history: str, user_input: str, vehicle_fitment
             """
     return prompt
 
-def clarification_prompt(conversation_history: str, user_input: str) -> str:
+def clarification_prompt(history_context: str, user_input: str) -> str:
     return f"""<|im_start|>system
             당신은 지프 튜닝 전문가 챗봇입니다.
-            고객이 질문했지만, 답변을 위해 필요한 정보가 부족합니다.
-            고객에게 추가로 어떤 정보를 물어봐야 할지 적절한 질문을 생성해주세요.
-            되도록 사용자가 사용한 단어를 유지하되, 오타를 포함하지 말고 정확하게 표기하세요.
-            {conversation_history}
+            현재 고객의 질문에는 정확한 답변을 제공하기 위한 정보가 부족합니다.
+            다음 항목들 중 하나 이상이 누락된 경우, 자연스럽게 추가 정보를 유도하는 질문을 생성해주세요:
+
+            - 선호하는 튜닝 타입 (예: 서스펜션, 휠/타이어, 외관 등)
+            - 제조사 또는 브랜드 (예: Mopar, Teraflex, FOX 등)
+            - 제품 원산지 (국산/미국산/해외 브랜드 여부)
+            - 성능 vs 디자인 중 어떤 요소를 더 중시하는지
+            - 가격대 (예: 가성비 중시 / 프리미엄 제품 선호)
+            - 기타 차량 관련 정보 (차종, 연식 등)
+
+            고객이 사용한 단어는 가급적 그대로 활용하되, 오타 없이 명확하게 표기하세요.
+
+            {history_context}
             <|im_end|>
             <|im_start|>user
             사용자 질문: "{user_input}"
@@ -135,11 +150,31 @@ def clarification_prompt(conversation_history: str, user_input: str) -> str:
             <|im_start|>assistant
             """
 
-def generate_prompt(question: str, documents: str) -> str:
+def fallback_prompt(history_context: str):
+    return f"""<|im_start|>system
+            당신은 지프 튜닝 전문가 챗봇입니다.
+            사용자의 질문이 튜닝과 무관한 발화라면 답변이 불가하다는 내용을 출력해주세요.
+            다만 대화 이력 중 화제를 전환할 내용이 있다면 이를 참고하여 답변해주세요.
+            대화 이력: {history_context}"""
+
+def generate_prompt(question: str, documents: str, history_context:str) -> str:
     # 답변 생성 프롬프트
-    system_prompt = """당신은 지프 튜닝 전문가입니다. 주로 들어오는 질문은 튜닝 관련 지식, 장착방법, 법령 질문입니다. \n
-    아래 정보를 바탕으로 정확하고 도움이 되는 답변을 제공해주세요. 반드시 한국말로 대답해줘."""
+    system_prompt = """
+    당신은 지프 튜닝 전문가입니다. 
+    사용자는 튜닝 부품, 장착 방법 등에 대해 질문하며, 종종 차량 정보(vehicle fitment)를 함께 제공합니다.
+
+    다음 원칙을 반드시 지켜주세요:
+    1. 질문이 특정 차량과 무관할 경우에는 vehicle fitment 정보를 답변에 반영하지 마세요.
+    2. 문서 내용을 바탕으로 정확하고 신뢰할 수 있는 정보를 요약해서 전달하세요.
+    3. 차량 호환성이나 장착 관련 질문에는 반드시 fitment 정보가 반영된 문서만 사용해 대답하세요.
+    4. 기술적인 용어는 쉽게 풀어 쓰되, 정확성을 유지해주세요.
+    5. 답변은 무조건 한국어로 생성해줘.
+    """
+
     user_prompt = f"""
+    # Here is the previous conversation context (if any):
+    {history_context}
+    
     # Here is the user's QUESTION that you should answer:
     {question}
 
@@ -251,9 +286,11 @@ def minor_tuning_judgment_prompt(trivial_result, structure_car_result, example_r
     4. 법령에 대한 정보를 제시할 때는 발췌 정보를 기입합니다.
 
     -- 경미한 튜닝 문서[법령] --
+    발췌 링크: [자동차 튜닝에 관한 규정](https://www.law.go.kr/LSW//admRulInfoP.do?admRulSeq=2100000244212&chrClsCd=010201)
     {trivial_result}
 
     -- 자동차 및 자동차부품의 성능과 기준에 관한 규칙(길이ㆍ너비 및 높이)[법령]  --
+    발췌 링크: [자동차 및 자동차 부품의 성능과 기준에 관한 규칙](https://www.law.go.kr/%EB%B2%95%EB%A0%B9/%EC%9E%90%EB%8F%99%EC%B0%A8%EB%B0%8F%EC%9E%90%EB%8F%99%EC%B0%A8%EB%B6%80%ED%92%88%EC%9D%98%EC%84%B1%EB%8A%A5%EA%B3%BC%EA%B8%B0%EC%A4%80%EC%97%90%EA%B4%80%ED%95%9C%EA%B7%9C%EC%B9%99)
     {structure_car_result}
 
     --튜닝 예시--
@@ -303,7 +340,9 @@ def administrative_process_guidance_prompt(result_semantic_search, result_tavily
     4. **답변은 간결하고, 정확하며, 문서나 웹 출처를 직접 인용하지 않습니다.** 단, 행정기관에서 제공한 기준임을 암시하는 톤을 유지합니다.
     5. 튜닝 부품 종류나 기술적 튜닝 내용(예: 서스펜션 종류, 휠 크기)은 설명하지 마십시오.  
     이 시스템은 행정 절차와 규정 안내만 담당합니다.
-    6.모든 답변은 담당자의 기준이 아닌 신청자의 기준으로 설명하시오.
+    6. 모든 답변은 담당자의 기준이 아닌 신청자의 기준으로 설명하시오.
+    7. 승인 절차 혹은 기간, 금액과 같은 질문이 들어오면 아래의 링크를 답변 제일 마지막에 제시합니다.
+    [ts 한국 교통 안전 공단](https://main.kotsa.or.kr/portal/contents.do?menuCode=01020100)
 
     아래는 검색 결과 입니다.
     # 시멘틱 서치
@@ -368,8 +407,10 @@ intent_classify_prompt ="""
     3. **regulation**
         - 자동차 튜닝 관련 법규나 규정 요청
         - 예시: 
-            - "튜닝 가능한 높이는 몇 cm까지인가요?"
+            - "교통규정상 튜닝 가능한 높이는 몇 cm까지인가요?"
             - "서스펜션 튜닝이 합법인가요?"
+            - "튜닝 승인 절차가 어떻게 되나요?"
+            - "오버휀다 장착이 합법적인 범위는 어디까지인가요?"
     4. **question about intent**
         - 차종 정보, 부품 종류, 사용 목적 등 답변에 필요한 정보 부족으로 추가 정보 요청 필요
         - 예시: 
