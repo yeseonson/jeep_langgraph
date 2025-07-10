@@ -36,7 +36,18 @@ def analyze_context(state: ChatState):
 
             logger.info(f"[CONTEXT_ANALYZER] conversation history: {conversation_history}")
 
-            prompt = relevance_prompt(conversation_history, user_input, vehicle_fitment)
+            history_context = ""
+            if conversation_history:
+                recent_history = conversation_history[-3:]
+                history_context = "\n".join(
+                    f"사용자: {item['user']}\n시스템: {item['system']}" for item in recent_history
+                ) + "\n"
+
+            prompt = relevance_prompt(
+                history_context=history_context, 
+                user_input=user_input, 
+                vehicle_fitment=vehicle_fitment
+            )
 
             try:
                 relevance_result = openai_response(
