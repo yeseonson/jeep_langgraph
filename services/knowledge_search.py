@@ -32,8 +32,6 @@ def semantic_search(query_text, top_k=TOP_K):
             }
         }
         
-        # logger.debug(f"Search query: {json.dumps(search_query, ensure_ascii=False)}")
-        
         # Execute search
         logger.info(f"Executing search query on index '{KNOWLEDGE_INDEX_NAME}'...")
         response = client.search(
@@ -54,6 +52,7 @@ def semantic_search(query_text, top_k=TOP_K):
         
         elapsed_time = time.time() - start_time
         logger.info(f"Semantic search completed: {len(results)} results, time elapsed: {elapsed_time:.2f} seconds")
+        logger.info(f"Semantic search results: {print_search_results(results=results, query=query_text)}")
         return results
         
     except Exception as e:
@@ -104,9 +103,6 @@ def hybrid_search(query_text, top_k=TOP_K):
             }
         }
         
-        text_query = search_query.get('query', {}).get('function_score', {}).get('query', {})
-
-        # logger.debug(f"Hybrid search query: {json.dumps(text_query, ensure_ascii=False)}")
         logger.debug(f"Search size: {search_query.get('size', 'default')}")
         
         # Execute search
@@ -129,7 +125,7 @@ def hybrid_search(query_text, top_k=TOP_K):
         
         elapsed_time = time.time() - start_time
         logger.info(f"Hybrid search completed: {len(results)} results, time elapsed: {elapsed_time:.2f} seconds")
-        logger.info(f"Hybrid search results: {results}")
+        logger.info(f"Hybrid search results: {print_search_results(results=results, query=query_text)}")
         return results
         
     except Exception as e:
