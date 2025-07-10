@@ -14,7 +14,7 @@ def build_recommendation_graph():
     builder = StateGraph(ChatState)
 
     builder.add_node("product_search", product_search_node)
-    builder.add_node("grade_documents", grade_products_node)
+    builder.add_node("grade_products", grade_products_node)
     builder.add_node("neo4j_search", neo4j_search_node)
     builder.add_node("format_product_info", format_product_info_node)
     builder.add_node("neo4j_plan_b_search", neo4j_plan_b_node)
@@ -24,10 +24,10 @@ def build_recommendation_graph():
 
     builder.set_entry_point("product_search")
 
-    builder.add_edge("product_search", "grade_documents")
+    builder.add_edge("product_search", "grade_products")
 
     builder.add_conditional_edges(
-        "grade_documents",
+        "grade_products",
         plan_b_condition,
         {
             "normal": "neo4j_search",
@@ -37,8 +37,8 @@ def build_recommendation_graph():
     builder.add_edge("neo4j_search", "format_product_info")
     builder.add_edge("neo4j_plan_b_search", "format_product_info")
     builder.add_edge("format_product_info", "knowledge_search")
-    builder.add_edge("knowledge_search", "summarize_knowledge")
-    builder.add_edge("summarize_knowledge", "generate_response")
+    builder.add_edge("knowledge_search", "generate_response")
+    # builder.add_edge("summarize_knowledge", "generate_response")
     builder.add_edge("generate_response", END)
 
     return builder.compile()
