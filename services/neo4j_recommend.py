@@ -69,6 +69,7 @@ def recommend_parts(graph: Neo4jGraph, input_model_nos: List[str], optional_quer
             RETURN 
                 basePart.model_no AS base_model_no,
                 basePart.name_ko AS base_name_ko,
+                basePart.name_en AS base_name_en,
                 COALESCE(baseManufacturer.name_en, 'Unknown') AS base_manufacturer_name,
                 COALESCE(baseManufacturer.ranking, 0) AS base_manufacturer_ranking,
                 COALESCE(category.name, 'Unknown') AS category_name,
@@ -108,6 +109,7 @@ def recommend_parts(graph: Neo4jGraph, input_model_nos: List[str], optional_quer
             "base_info": {
                 "model_no": row["base_model_no"],
                 "name_ko": row["base_name_ko"],
+                "name_en": row["base_name_en"],
                 "manufacturer_name": row["base_manufacturer_name"],
                 "manufacturer_ranking": row.get("base_manufacturer_ranking"),
                 "category_name": row["category_name"],
@@ -126,6 +128,7 @@ def recommend_parts(graph: Neo4jGraph, input_model_nos: List[str], optional_quer
               "base_info": {
                 "model_no": model_no,
                 "name_ko": None,
+                "name_en": None,
                 "manufacturer_name": None,
                 "manufacturer_ranking": None,
                 "manufacturer_strength": None,
@@ -150,6 +153,7 @@ def print_recommendations(recommendations: Dict[str, Dict[str, Any]]):
 
         logger.info(f"=== [{base_model_no} 연관 추천 상품] ===")
         logger.info(f"기준 부품명: {base_info['name_ko']}")
+        logger.info(f"영문 부품명: {base_info['name_en']}")
         logger.info(f"카테고리: {base_info['category_name']}")
         logger.info(f"가격: ${base_info['base_price']}")
         logger.info(f"제조사: {base_info['manufacturer_name']}")
