@@ -75,9 +75,9 @@ def product_recommend_prompt(history_context, context, user_input) -> str:
             - 제품 선택 시 고려해야 할 추가 사항, 대안 제품, 관련 제품, 구매 전 확인 사항, 설치나 사용 시 필요한 도구 등을 포함해 조언하세요.
             <|im_end|>
             <|im_start|>user
-            {history_context}
 
-            다음은 관련 정보입니다:
+            대화 맥락 정보:
+            {history_context}
 
             {context}
 
