@@ -24,3 +24,4 @@ langchain-neo4j==0.4.0
 streamlit==1.46.0
 gradio==5.34.2
 pydantic==2.11.3
+langdetect==1.0.9
