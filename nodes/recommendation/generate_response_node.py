@@ -13,22 +13,41 @@ def generate_response_node(state: ChatState) -> Dict[str, Any]:
     user_id = state["user_id"]
     thread_id = state["thread_id"]
     conversation_history = state.get("conversation_history", [])
+    is_followup = state.get("is_followup", False)
 
     product_info = state.get("product_info", "")
     knowledge_summary = state.get("knowledge_summary", "")
+    
+    if not knowledge_summary:
+        knowledge_hits = state.get("knowledge_hits", [])
+        knowledge_summary = "\n".join(
+            hit.get('document', '') for hit in knowledge_hits
+        ) if knowledge_hits else ""
 
     memory_manager = ChatMemoryManager()
+
+    history_context = ""
+    if is_followup and conversation_history:
+        recent_history = conversation_history[-3:]
+        history_context = "\n".join(
+            f"사용자: {item['user']}\n시스템: {item['system']}" for item in recent_history
+        ) + "\n"
 
     try:
         # 제품 정보와 지식 정보를 결합하여 최종 컨텍스트 구성
         final_context = f"""제품 정보:
         {product_info}
 
+        [지식 정보는 참조용입니다]
         관련 지식:
         {knowledge_summary}"""
 
         # LLM 호출하여 응답 생성
-        response = call_llm_with_context(user_input=user_input, context=final_context, conversation_history=conversation_history)
+        response = call_llm_with_context(
+            user_input=user_input, 
+            context=final_context, 
+            history_context=history_context
+        )
         if user_id and thread_id:
             message = {
                 "user_input": user_input,
@@ -40,7 +59,7 @@ def generate_response_node(state: ChatState) -> Dict[str, Any]:
             memory_manager.save_message(user_id, thread_id, message_id, message)
 
         logger.info(f"LLM 응답: {response}")
-
+        
         return {
             **state,
             "output": response,
@@ -54,19 +73,12 @@ def generate_response_node(state: ChatState) -> Dict[str, Any]:
             "output": "죄송합니다. 처리 중 오류가 발생했습니다."
         }
     
-def call_llm_with_context(user_input: str, context: str, conversation_history: List[Dict] = []):
+def call_llm_with_context(user_input: str, context: str, history_context):
     """컨텍스트와 함께 LLM 호출"""
 
     if not user_input.strip() or not context.strip():
         return "입력 정보가 부족합니다."
     
-    history_context = ""
-    if conversation_history:
-        recent_history = conversation_history[-3:]
-        history_context = "\n".join(
-            f"사용자: {item['user']}\n시스템: {item['system']}" for item in recent_history
-        ) + "\n"
-
     prompt = product_recommend_prompt(history_context=history_context, context=context, user_input=user_input)
 
     logger.info(f"history_context: {history_context}")
