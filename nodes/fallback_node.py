@@ -3,6 +3,7 @@ from jeepchat.logger import logger
 from jeepchat.state import ChatState
 from jeepchat.services.chat_memory import ChatMemoryManager
 from jeepchat.utils import generate_message_id
+from jeepchat.config.prompts import fallback_prompt
 from datetime import datetime
 
 def fallback_node(state: ChatState):
@@ -13,15 +14,13 @@ def fallback_node(state: ChatState):
 
     memory_manager = ChatMemoryManager()
 
-    history_text = "\n".join(
-        f"사용자: {msg['user']}\n시스템: {msg['system']}" for msg in conversation_history
-    )
+    history_context = ""
+    if conversation_history:
+        history_context = "\n".join(
+            f"사용자: {msg['user']}\n시스템: {msg['system']}" for msg in conversation_history
+        )
 
-    prompt = f"""<|im_start|>system
-                당신은 지프 튜닝 전문가 챗봇입니다.
-                사용자의 질문이 튜닝과 무관한 발화라면 답변이 불가하다는 내용을 출력해주세요.
-                다만 대화 이력 중 화제를 전환할 내용이 있다면 이를 참고하여 답변해주세요.
-                대화 이력: {history_text}"""
+    prompt = fallback_prompt(history_context=history_context)
 
     try:
         response = openai_response(system_prompt=prompt, user_input=query)
