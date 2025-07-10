@@ -37,6 +37,15 @@ def grade_products_node(state: ChatState) -> Dict[str, Any]:
             logger.info("==== [GRADE: DOCUMENT NOT RELEVANT] ====")
     
     logger.info(f"[GradeDocuments] 관련 문서 수: {relevant_doc_count}")
+    
+    if relevant_doc_count == 0:
+        logger.info("[GradeDocuments] 관련 문서가 없습니다. Product hits를 반환합니다.")
+        return {
+            **state,
+            'relevant_docs': product_hits,
+            'trigger_plan_b': False
+        }
+    
     if relevant_doc_count == 1:
         logger.info("[GradeDocuments] 관련 문서가 부족합니다. Neo4j Plan B 검색으로 이동합니다.")
         return {
@@ -44,6 +53,7 @@ def grade_products_node(state: ChatState) -> Dict[str, Any]:
             'relevant_docs': relevant_docs,
             'trigger_plan_b': True
         }
+    
     return {
         **state,
         'relevant_docs': relevant_docs,
