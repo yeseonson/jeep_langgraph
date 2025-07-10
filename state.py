@@ -14,6 +14,7 @@ class BaseChatState(TypedDict):
     conversation_history: Optional[List[Dict[str, str]]]
     original_query: Optional[str]
     trigger_plan_b: Optional[bool]
+    needs_rerouting: Optional[bool]
 
 
 class RecommendationState(TypedDict):
@@ -31,12 +32,16 @@ class InformationState(TypedDict):
     query_rewritten: Optional[str]
     web_search: Optional[str]
     documents: Optional[List[Dict]]
+    relevant_doc_count: Optional[int]
+    is_retry_count: int = 0
 
 
 class RegulationState(TypedDict):
     regulation_admin_answer: Optional[str]
     device_category: Optional[str]
     is_minor_tuning: Optional[str]
+    early_exit: Optional[str]
+    system_prompt:Optional[str]
 
 
 class ChatState(BaseChatState, RecommendationState, InformationState, RegulationState):
