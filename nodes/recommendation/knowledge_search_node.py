@@ -7,6 +7,17 @@ from jeepchat.state import ChatState
 def knowledge_search_node(state: ChatState) -> Dict[str, Any]:
     try:
         query = state["user_input"]
+        conversation_history = state.get("conversation_history", [])
+        is_followup = state.get("is_followup", False)
+
+        if is_followup:
+            history_text = ""
+            if conversation_history:
+                history_text = "\n".join(
+                    f"사용자: {msg['user']}\n시스템: {msg['system']}" for msg in conversation_history
+                )
+            query += history_text
+
         knowledge_hits = semantic_search(query, top_k=KNOWLEDGE_TOP_K)
         
         if not knowledge_hits:
