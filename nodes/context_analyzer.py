@@ -1,8 +1,9 @@
 from jeepchat.logger import logger
 from jeepchat.state import ChatState
 from jeepchat.config.prompts import relevance_prompt
+from jeepchat.services.context import build_history_context, get_recent_conversation
 
-def analyze_context(state: ChatState):
+def analyze_context(state: ChatState) -> ChatState:
     """맥락 분석 노드 - 이전 대화와 연관성 판단"""
 
     from jeepchat.services.chat_memory import ChatMemoryManager
@@ -25,24 +26,10 @@ def analyze_context(state: ChatState):
         previous_messages = memory_manager.get_thread_messages(user_id, thread_id)
 
         if previous_messages:
-            for msg in previous_messages[-3:]:
-                user_text = msg.get("user_input", "")
-                system_text = msg.get("output", "")
-                if user_text and system_text:
-                    conversation_history.append({
-                        "user": user_text,
-                        "system": system_text
-                    })
-
+            conversation_history = get_recent_conversation(previous_messages, max_turns=3)
             logger.info(f"[CONTEXT_ANALYZER] conversation history: {conversation_history}")
 
-            history_context = ""
-            if conversation_history:
-                recent_history = conversation_history[-3:]
-                history_context = "\n".join(
-                    f"사용자: {item['user']}\n시스템: {item['system']}" for item in recent_history
-                ) + "\n"
-
+            history_context = build_history_context(conversation_history)
             prompt = relevance_prompt(
                 history_context=history_context, 
                 user_input=user_input, 
@@ -54,17 +41,16 @@ def analyze_context(state: ChatState):
                     system_prompt=prompt,
                     user_input=user_input
                 )
-                context_relevant = relevance_result.strip().lower() == 'relevant'
-                logger.info(f"[CONTEXT_ANALYZER] 연관성 분석 결과: {context_relevant}")
+                is_followup = relevance_result.strip().lower() == 'relevant'
+                logger.info(f"[CONTEXT_ANALYZER] 연관성 분석 결과: {is_followup}")
 
             except Exception as e:
                 logger.error(f"[CONTEXT_ANALYZER] 연관성 분석 중 오류: {e}")
 
     new_state = dict(state)
     new_state.update({
-        "context_relevant": context_relevant,
         "conversation_history": conversation_history,
-        "is_followup": context_relevant,
+        "is_followup": is_followup,
         "output": ""
     })
 
