@@ -1,22 +1,22 @@
 from typing import Dict, Any
 from jeepchat.logger import logger
 from jeepchat.services.knowledge_search import semantic_search
+from jeepchat.services.context import build_history_context
 from jeepchat.config.constants import KNOWLEDGE_TOP_K
 from jeepchat.state import ChatState
 
 def knowledge_search_node(state: ChatState) -> Dict[str, Any]:
     try:
         query = state["user_input"]
+        vehicle_fitment = state.get("vehicle_fitment", None)
         conversation_history = state.get("conversation_history", [])
         is_followup = state.get("is_followup", False)
 
         if is_followup:
-            history_text = ""
-            if conversation_history:
-                history_text = "\n".join(
-                    f"사용자: {msg['user']}\n시스템: {msg['system']}" for msg in conversation_history
-                )
-            query += history_text
+            history_context = build_history_context(conversation_history=conversation_history)
+            if vehicle_fitment:
+                query += f"\nvehicle_fitment: {vehicle_fitment}"
+            query += f"\n대화 맥락: {history_context}"
 
         knowledge_hits = semantic_search(query, top_k=KNOWLEDGE_TOP_K)
         
