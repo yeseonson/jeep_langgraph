@@ -10,11 +10,9 @@ class BaseChatState(TypedDict):
     output: Optional[str]
     context_relevant: Optional[bool]
     is_followup: Optional[bool]
-    is_clarify_followup: Optional[bool]
     conversation_history: Optional[List[Dict[str, str]]]
     original_query: Optional[str]
     trigger_plan_b: Optional[bool]
-    needs_rerouting: Optional[bool]
 
 
 class RecommendationState(TypedDict):
@@ -44,7 +42,14 @@ class RegulationState(TypedDict):
     system_prompt:Optional[str]
 
 
-class ChatState(BaseChatState, RecommendationState, InformationState, RegulationState):
+class ClarifyState(TypedDict):
+    is_clarify_followup: Optional[bool]
+    clarify_attempts: Optional[int]
+    needs_rerouting: Optional[bool]
+    force_fallback: Optional[bool]
+
+
+class ChatState(BaseChatState, RecommendationState, InformationState, RegulationState, ClarifyState):
     pass
 
 
