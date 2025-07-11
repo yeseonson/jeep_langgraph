@@ -6,6 +6,7 @@ from jeepchat.services.web_search import web_search_tool
 from jeepchat.services.knowledge_search import hybrid_search, semantic_search
 from jeepchat.logger import logger
 from jeepchat.services.chat_memory import ChatMemoryManager
+from jeepchat.services.context import build_history_context
 from jeepchat.utils import generate_message_id
 from typing import Dict, Any
 
@@ -14,26 +15,54 @@ from typing import Dict, Any
 def retrieve(state: ChatState):
     logger.info("==== RETRIEVE ====\n")
     user_input = state['user_input']
+    vehicle_fitment = state.get('vehicle_fitment', None)
+    conversation_history = state.get("conversation_history", "")
+    is_retry_count = state.get('is_retry_count', 0)
+    is_followup = state.get('is_followup', False)
+
+    if is_followup == True:
+        history_context = build_history_context(conversation_history)
+        query = user_input + "\n\n" + history_context
+    else:
+        query = user_input
+
+    # vehicle_fitment 조건을 query에 추가
+    if vehicle_fitment:
+        query += f" (vehicle fitment: {vehicle_fitment})"
+
+    if is_retry_count == 0:
+        documents = semantic_search(query)
+        print(f"==== [RETRIEVE: SEMANTIC SEARCH] ====")
+    else:
+        documents = hybrid_search(query)
+        print(f"==== [RETRIEVE: HYBRID SEARCH] ====")
     
-    # 문서 검색 수행
-    documents = semantic_search(user_input)
     logger.info(f"[retrieve] 검색된 문서: {documents}...")
-    return {'documents': documents}
+    return {'documents': documents, 'is_retry_count': is_retry_count + 1}
 
 
 # 답변 생성 노드
 def generate(state: ChatState) -> Dict[str, Any]:
     logger.info("==== GENERATE ====\n")
     user_input = state['user_input']
+    vehicle_fitment = state.get('vehicle_fitment', None)
+    is_followup = state.get('is_followup', "not_relevant")
+    conversation_history = state.get("conversation_history", "")
+
+    if vehicle_fitment:
+        query = f"{user_input} (vehicle fitment: {vehicle_fitment})"
+    else:
+        query = user_input
+
     documents = state.get('documents', [])
-    
+    history_context = build_history_context(conversation_history)
+        
     # RAG를 사용한 답변 생성
-    # TODO: [CHECK] documents_text 작업이 필요한지 확인
     documents_text = ""
     if documents:
         documents_text = "\n\n".join([doc.get('document', '') for doc in documents])
     
-    generation = generate_answer(user_input, documents_text)
+    generation = generate_answer(query, documents_text, history_context)
     
     logger.info(f"[generate] 생성된 답변: {generation}")
     
@@ -63,9 +92,14 @@ def generate(state: ChatState) -> Dict[str, Any]:
 def query_rewrite(state: ChatState):
     logger.info("==== [REWRITE QUERY] ====\n")
     user_input = state['user_input']
+    vehicle_fitment = state.get('vehicle_fitment', None)
+
+    if vehicle_fitment:
+        rewritten = question_rewriter(f"{user_input} (vehicle fitment: {vehicle_fitment})")
+    else:
+        rewritten = question_rewriter(user_input)
     
     # 질문 재작성
-    rewritten = question_rewriter(user_input)
     logger.info(f"[QueryRewrite] 재작성된 질문: {rewritten}...")
     return {"query_rewritten": rewritten}
 
@@ -103,7 +137,7 @@ def grade_documents(state: ChatState):
 
     # 관련 문서가 없으면 웹 검색 수행
     web_search = 'Yes' if relevant_doc_count <= 3 else 'No'
-    return {'documents': filtered_docs, 'web_search': web_search}
+    return {'documents': filtered_docs, 'web_search': web_search, 'relevant_doc_count': relevant_doc_count}
 
 
 # 웹 검색 노드
@@ -113,7 +147,7 @@ def web_search(state: ChatState):
     documents = state.get('documents', [])
 
     # 웹 검색 수행
-    docs = web_search_tool(rewritten_user_input, max_results=3)
+    docs = web_search_tool(rewritten_user_input, max_results=3, country="united states")
     
     # 검색 결과를 문서 형식으로 변환
     if docs and isinstance(docs, list):
