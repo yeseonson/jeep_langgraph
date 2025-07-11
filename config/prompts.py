@@ -1,91 +1,4 @@
-def info_check_prompt(history_context: str, user_input: str) -> str:
-    return f"""<|im_start|>system
-            당신은 지프 튜닝 전문가 챗봇입니다.
-            사용자의 질문에 답변하기 위해 충분한 정보가 있는지 확인해주세요.
-            충분한 정보가 있으면 'sufficient'로, 부족하면 'insufficient'로 답해주세요.
-            {history_context}
-            <|im_end|>
-            <|im_start|>user
-            사용자 질문: "{user_input}"
-            <|im_end|>
-            <|im_start|>assistant
-            """
-
-def product_grader_prompt(documents: str) -> str:
-    return f"""<|im_start|>system
-            당신은 사용자 질문에 대해 검색된 문서(또는 상품 정보)가 관련성이 있는지를 평가하는 평가자입니다.  
-            문서가 질문과 관련된 키워드 또는 의미론적으로 유사한 내용을 포함하고 있다면 'yes'으로 평가하세요.  
-            그렇지 않다면 'no'으로 평가하세요.
-            반드시 'yes' 또는 'no' 중 하나의 단답으로만 응답하세요.
-            <|im_end|>
-            <|im_start|>user
-            검색된 문서 내용: \n\n{documents}\n\n사용자 질문:
-            <|im_end|>
-            """
-
-def generate_product_recommendation_prompt(user_input, documents) -> str:
-    prompt = f"""당신은 지프 차량의 튜닝과 주행 환경에 대한 기술 문서를 분석하는 전문가입니다.
-
-            다음은 사용자 질문과 관련된 커뮤니티 기반 지식 문서입니다. 아래 문서들의 **내용만을 기반으로** 요약을 작성해 주세요.
-            외부 지식이나 일반적인 추론을 추가하지 마십시오.
-
-            - 문서 내에 언급된 **기술 정보, 사용자 경험, 부품 정보**는 요약에 반드시 포함해 주세요.
-            - 문서에 **언급되지 않은 정보**는 절대 삽입하지 마세요.
-            - 요약은 제품 추천에 참고할 수 있도록 구성하되, **문서에 실제로 언급된 내용만** 바탕으로 하세요.
-
-            질문: "{user_input}"
-
-            문서 내용:
-            {documents}
-
-            요약:"""
-    return prompt
-
-def product_recommend_prompt(history_context, context, user_input) -> str:
-    prompt = f"""<|im_start|>system
-            당신은 지프 튜닝 및 부품 전문가입니다. 아래 정보를 바탕으로 정확하고 도움이 되는 답변을 제공해주세요.
-            되도록 사용자가 사용한 단어를 유지하되, 오타를 포함하지 말고 정확하게 표기하세요.
-
-            다음 조건을 반드시 지켜주세요:
-            - 사용자의 질문(`user_query`)이 **100% 영문으로만 구성된 경우**, 답변도 **영어로 작성**해 주세요.
-            - 그렇지 않은 경우에는 **한국어로 작성**해 주세요.
-
-            답변 시 다음 지침을 반드시 따르세요:
-
-           1. 제품 추천 (다양한 기준 기반 추천 포함)
-            - **반드시 제품 정보에 포함된 상품만 추천**하세요.
-            - 사용자가 찾는 제품이 제품 정보에 없는 경우, **가장 유사한 대체 제품을 찾아 추천**하고 그 이유를 설명하세요.
-            - 제품은 다음과 같은 기준에 따라 나누어 최대한 다양하게 추천해 주세요 (모든 기준에 해당하는 제품이 없을 경우 일부만 사용해도 무방합니다):
-                - 가성비 중심 추천
-                - 설치가 쉬운 제품
-                - 오프로드 성능이 우수한 제품
-                - 강한 내구성을 가진 제품
-                - 고급 옵션 또는 프리미엄 제품
-            - 각 제품별로 다음 정보를 포함해 주세요:
-                - 제품 특징과 장점
-                - 상품 링크, 호환성 정보
-                - 가격
-                - 주요 사용 사례 또는 적합한 환경
-
-            2. 관련 지식 정보
-            - 추천 제품의 활용에 도움이 되는 주의사항, 팁, 기술 정보, 법규, 사용자 경험 등을 제공하세요.
-            - 단, 관련 지식 정보는 제품 추천의 보완 설명으로만 사용하고, 단독 추천의 근거로 사용하지 마세요.
-
-            3. 종합적인 조언
-            - 제품 선택 시 고려해야 할 추가 사항, 대안 제품, 관련 제품, 구매 전 확인 사항, 설치나 사용 시 필요한 도구 등을 포함해 조언하세요.
-            <|im_end|>
-            <|im_start|>user
-
-            대화 맥락 정보:
-            {history_context}
-
-            {context}
-
-            질문: {user_input}<|im_end|>
-            <|im_start|>assistant"""
-    return prompt
-
-# 맥락 분석 노드 (context_analyzer.py)
+# context_analyzer
 def relevance_prompt(history_context: str, user_input: str, vehicle_fitment: str) -> str:
     prompt = f"""
             이전 대화:
@@ -127,6 +40,170 @@ def relevance_prompt(history_context: str, user_input: str, vehicle_fitment: str
             """
     return prompt
 
+
+# router
+intent_classify_prompt ="""
+    당신은 지프 튜닝 챗봇의 의도 분류기입니다. 사용자 질문의 핵심 의도를 파악하여 다음 다섯 분기 중 하나로만 분류하세요.
+
+    ## 분류 기준
+
+    1. **recommendation**
+        - 상품 추천 요청 (선호/상황/랭킹/가격대 기반)
+        - 예시: 
+            - "2020 지프 랭글러에 맞는 리프트 키트 알려줘"
+            - "인기 있는 튜닝 휠 알려줘"
+    2. **information**
+        - 튜닝 관련 지식, 장착 방법, 영향, 문제 해결 등 기술적 정보
+        - 지프 차량에 대한 일반 정보, 부품 정보, 고질병, 운행 팁, 오프로드 코스 등 실사용 관련 정보
+        - 예시: 
+            - "엔진 출력 향상을 위한 튜닝 방법이 있을까요?"
+            - "랭글러 JL 하체 보호는 어떻게 하죠?"
+            - "초보자가 가기 좋은 오프로드 코스 알려줘"
+            - "데스워블 현상이 뭔가요?"
+            - "하드탑, 소프트탑, 비키니탑 차이점을 알려줘"
+    3. **regulation**
+        - 자동차 튜닝 관련 법규나 규정 요청
+        - 예시: 
+            - "교통규정상 튜닝 가능한 높이는 몇 cm까지인가요?"
+            - "서스펜션 튜닝이 합법인가요?"
+            - "튜닝 승인 절차가 어떻게 되나요?"
+            - "오버휀다 장착이 합법적인 범위는 어디까지인가요?"
+    4. **question about intent**
+        - 차종 정보, 부품 종류, 사용 목적 등 답변에 필요한 정보 부족으로 추가 정보 요청 필요
+        - 예시: 
+            - "튜닝하려고 하는데 뭐부터 보면 될까?"
+            - "차에 뭘 바꾸면 좋을까?"
+    5. **out of context**
+        - 자동차/지프/튜닝과 무관한 주제
+        - 예시: 
+            - "내일 날씨 어때?"
+            - "튜닝하고 싶은데 와이프 눈치 보여..."
+
+    전체 질문 맥락을 고려하여 분석한 후, 최종답변으로 분기명만 출력하세요.
+    """
+
+# router
+intent_clarify_followup_instruction = """
+    이 질문은 이전에 추가 정보를 요청한 후속 질문입니다.
+    이전 대화의 맥락을 고려하여, 사용자의 의도를 정확하게 파악해주세요.
+    예를 들어:
+    - 이전에 "어떤 종류의 튜닝을 원하시나요?"라고 물었고, 사용자가 "서스펜션 튜닝"이라고 답했다면
+    이는 서스펜션 튜닝에 대한 recommendation 의도로 분류해야 합니다.
+    - 이전에 "어떤 모델의 지프를 가지고 계신가요?"라고 물었고, 사용자가 "랭글러 JL"이라고 답했다면
+    이는 랭글러 JL에 대한 recommendation 의도로 분류해야 합니다.
+    """
+
+# router
+intent_context_relevance_instruction = """
+    이전 대화와 현재 질문의 연관성을 분석해주세요:
+    1. 현재 질문이 이전 대화의 주제와 직접적으로 연관되어 있는지
+    2. 이전 대화에서 언급된 내용에 대한 추가 질문인지
+    3. 이전 대화의 맥락을 이해해야 정확한 답변이 가능한지
+
+    연관성이 있다고 판단되면, 이전 대화의 맥락을 고려하여 분류해주세요.
+    """
+
+
+# recommendation
+def product_grader_prompt(documents: str) -> str:
+    return f"""<|im_start|>system
+        당신은 사용자 질문(user_query)과 제공된 상품 정보 사이의 관련성을 평가하는 평가자입니다.  
+        상품 정보가 사용자 질문에서 요구하는 조건, 특징, 용도, 부품 종류 등과 의미적으로 연관되어 있다면 'yes'로 응답하세요.  
+        그렇지 않고 질문에 대한 답변으로 적절하지 않다면 'no'로 응답하세요.  
+        평가는 반드시 'yes' 또는 'no' 중 하나의 단답으로만 하세요.
+        <|im_end|>
+        <|im_start|>user
+        [상품 정보]{documents}\n\n사용자 질문:
+        <|im_end|>
+        """
+
+# recommendation
+def generate_product_recommendation_prompt(user_input, documents) -> str:
+    prompt = f"""당신은 지프 차량의 튜닝과 주행 환경에 대한 기술 문서를 분석하는 전문가입니다.
+
+            다음은 사용자 질문과 관련된 커뮤니티 기반 지식 문서입니다. 아래 문서들의 **내용만을 기반으로** 요약을 작성해 주세요.
+            외부 지식이나 일반적인 추론을 추가하지 마십시오.
+
+            - 문서 내에 언급된 **기술 정보, 사용자 경험, 부품 정보**는 요약에 반드시 포함해 주세요.
+            - 문서에 **언급되지 않은 정보**는 절대 삽입하지 마세요.
+            - 요약은 제품 추천에 참고할 수 있도록 구성하되, **문서에 실제로 언급된 내용만** 바탕으로 하세요.
+
+            질문: "{user_input}"
+
+            문서 내용:
+            {documents}
+
+            요약:"""
+    return prompt
+
+# recommendation
+def product_recommend_prompt(history_context, context, user_input) -> str:
+    prompt = f"""<|im_start|>system
+            당신은 지프 튜닝 및 부품 전문가입니다. 아래 정보를 바탕으로 정확하고 도움이 되는 답변을 제공해주세요.
+            되도록 사용자가 사용한 단어를 유지하되, 오타를 포함하지 말고 정확하게 표기하세요.
+
+            다음 조건을 반드시 지켜주세요:
+            - 사용자의 질문(`user_query`)이 **100% 영문으로만 구성된 경우**, 답변도 **영어로 작성**해 주세요.
+            - 그렇지 않은 경우에는 **한국어로 작성**해 주세요.
+
+            답변 시 다음 지침을 반드시 따르세요:
+
+           1. 제품 추천 (다양한 기준 기반 추천 포함)
+            - **반드시 제품 정보에 포함된 상품만 추천**하세요.
+            - 사용자가 찾는 제품이 제품 정보에 없는 경우, **가장 유사한 대체 제품을 찾아 추천**하고 그 이유를 설명하세요.
+            - 제품은 다음과 같은 기준에 따라 나누어 최대한 다양하게 추천해 주세요 (모든 기준에 해당하는 제품이 없을 경우 일부만 사용해도 무방합니다):
+                - 가성비 중심 추천
+                - 설치가 쉬운 제품
+                - 오프로드 성능이 우수한 제품
+                - 강한 내구성을 가진 제품
+                - 고급 옵션 또는 프리미엄 제품
+            - 각 제품별로 다음 정보를 포함해 주세요:
+                - 제품 특징과 장점
+                - 상품 링크, 호환성 정보
+                - 가격
+                - 주요 사용 사례 또는 적합한 환경
+
+            2. 관련 지식 정보
+            - 추천 제품의 활용에 도움이 되는 주의사항, 팁, 기술 정보, 법규, 사용자 경험 등을 제공하세요.
+            - 단, 관련 지식 정보는 제품 추천의 보완 설명으로만 사용하고, 단독 추천의 근거로 사용하지 마세요.
+
+            3. 종합적인 조언
+            - 제품 선택 시 고려해야 할 추가 사항, 대안 제품, 관련 제품, 구매 전 확인 사항, 설치나 사용 시 필요한 도구, 규제 등을 포함해 조언하세요.
+            <|im_end|>
+            <|im_start|>user
+
+            대화 맥락 정보:
+            {history_context}
+
+            {context}
+
+            질문: {user_input}<|im_end|>
+            <|im_start|>assistant"""
+    return prompt
+
+# recommendation
+knowledge_summary_system_prompt = """
+    당신은 지프 튜닝 기술 문서를 요약하는 전문가입니다.
+    제공된 문서 내용을 기반으로만 요약을 생성하세요.
+    외부 지식, 유추, 상식에 기반한 내용은 포함하지 마세요.
+    """
+
+
+# clarify
+def info_check_prompt(history_context: str, user_input: str) -> str:
+    return f"""<|im_start|>system
+            당신은 지프 튜닝 전문가 챗봇입니다.
+            사용자의 질문에 답변하기 위해 충분한 정보가 있는지 확인해주세요.
+            충분한 정보가 있으면 'sufficient'로, 부족하면 'insufficient'로 답해주세요.
+            {history_context}
+            <|im_end|>
+            <|im_start|>user
+            사용자 질문: "{user_input}"
+            <|im_end|>
+            <|im_start|>assistant
+            """
+
+# clarify
 def clarification_prompt(history_context: str, user_input: str) -> str:
     return f"""<|im_start|>system
             당신은 지프 튜닝 전문가 챗봇입니다.
@@ -150,6 +227,7 @@ def clarification_prompt(history_context: str, user_input: str) -> str:
             <|im_start|>assistant
             """
 
+# fallback
 def fallback_prompt(history_context: str):
     return f"""<|im_start|>system
             당신은 지프 튜닝 전문가 챗봇입니다.
@@ -157,6 +235,8 @@ def fallback_prompt(history_context: str):
             다만 대화 이력 중 화제를 전환할 내용이 있다면 이를 참고하여 답변해주세요.
             대화 이력: {history_context}"""
 
+
+# information
 def generate_prompt(question: str, documents: str, history_context:str) -> str:
     # 답변 생성 프롬프트
     system_prompt = """
@@ -185,7 +265,7 @@ def generate_prompt(question: str, documents: str, history_context:str) -> str:
     """
     return system_prompt, user_prompt
 
-
+# information
 def re_write_prompt(question: str) -> str:
     # 질문 재작성 프롬프트로 web search에 들어가는 질문을 재작성
     system_prompt = """You a question re-writer that converts an input question to a better version that is optimized for web search. \n
@@ -196,7 +276,7 @@ def re_write_prompt(question: str) -> str:
     """
     return system_prompt, user_prompt
 
-    
+# information    
 def retrieval_grader_prompt(question: str, documents: str) -> str:
     # 문서 평가 프롬프트
     system_prompt = """You are a grader assessing relevance of a retrieved document to a user question. \n 
@@ -206,6 +286,7 @@ def retrieval_grader_prompt(question: str, documents: str) -> str:
     return system_prompt, user_prompt
 
 
+# regulation
 def minor_tuning_classifier_prompt(example_result) -> str:
     return f"""당신은 자동차 튜닝 규정 해석 전문가입니다.
 
@@ -241,7 +322,7 @@ def minor_tuning_classifier_prompt(example_result) -> str:
     Q: {{user_input}} 질문은 경미한 장치 튜닝인가
     A:
     """
-
+# regulation
 def major_tuning_judgment_prompt(example_result, regulation_result, structure_car_result) -> str: 
     return f"""
     당신은 자동차 튜닝 규정 해석 전문가입니다.
@@ -272,6 +353,7 @@ def major_tuning_judgment_prompt(example_result, regulation_result, structure_ca
     A:
     """
 
+# regulation
 def minor_tuning_judgment_prompt(trivial_result, structure_car_result, example_result) -> str:
     return f"""당신은 자동차 튜닝 규정 해석 전문가입니다.
 
@@ -300,6 +382,7 @@ def minor_tuning_judgment_prompt(trivial_result, structure_car_result, example_r
     A:
     """
 
+# regulation
 def non_approval_guidance_prompt(category, result_semantic_search, result_tavily_search) -> str:
     return f"""
     당신은 자동차 튜닝과 관련된 정보를 제공하는 대한 전문 상담 도우미입니다.  
@@ -327,6 +410,7 @@ def non_approval_guidance_prompt(category, result_semantic_search, result_tavily
     A:
     """
 
+# regulation
 def administrative_process_guidance_prompt(result_semantic_search, result_tavily_search) -> str:
     return f"""
     당신은 자동차 튜닝과 관련된 행정 절차, 신청 조건, 처리 기한 등에 대한 전문 상담 도우미입니다.  
@@ -356,6 +440,7 @@ def administrative_process_guidance_prompt(result_semantic_search, result_tavily
     A:
     """
 
+# regulation
 device_category_classifier_prompt = """당신은 들어온 질문에 대하여 자동차의 장치에 관한 정보를 묻는 질문이면 아래의 카테고리중 하나를 반환하여야 한다.
 
     1. 원동기(동력발생장치) 및 동력전달장치
@@ -385,71 +470,7 @@ device_category_classifier_prompt = """당신은 들어온 질문에 대하여 �
     답변은 무조건 카테고리만 답변하고 그 외의 말은 적지 않는다.
     """
 
-intent_classify_prompt ="""
-    당신은 지프 튜닝 챗봇의 의도 분류기입니다. 사용자 질문의 핵심 의도를 파악하여 다음 다섯 분기 중 하나로만 분류하세요.
-
-    ## 분류 기준
-
-    1. **recommendation**
-        - 상품 추천 요청 (선호/상황/랭킹/가격대 기반)
-        - 예시: 
-            - "2020 지프 랭글러에 맞는 리프트 키트 알려줘"
-            - "인기 있는 튜닝 휠 알려줘"
-    2. **information**
-        - 튜닝 관련 지식, 장착 방법, 영향, 문제 해결 등 기술적 정보
-        - 지프 차량에 대한 일반 정보, 부품 정보, 고질병, 운행 팁, 오프로드 코스 등 실사용 관련 정보
-        - 예시: 
-            - "엔진 출력 향상을 위한 튜닝 방법이 있을까요?"
-            - "랭글러 JL 하체 보호는 어떻게 하죠?"
-            - "초보자가 가기 좋은 오프로드 코스 알려줘"
-            - "데스워블 현상이 뭔가요?"
-            - "하드탑, 소프트탑, 비키니탑 차이점을 알려줘"
-    3. **regulation**
-        - 자동차 튜닝 관련 법규나 규정 요청
-        - 예시: 
-            - "교통규정상 튜닝 가능한 높이는 몇 cm까지인가요?"
-            - "서스펜션 튜닝이 합법인가요?"
-            - "튜닝 승인 절차가 어떻게 되나요?"
-            - "오버휀다 장착이 합법적인 범위는 어디까지인가요?"
-    4. **question about intent**
-        - 차종 정보, 부품 종류, 사용 목적 등 답변에 필요한 정보 부족으로 추가 정보 요청 필요
-        - 예시: 
-            - "튜닝 휠 어떤 게 좋아?"
-            - "차종이 어떻게 되시나요?"
-    5. **out of context**
-        - 자동차/지프/튜닝과 무관한 주제
-        - 예시: 
-            - "내일 날씨 어때?"
-            - "튜닝하고 싶은데 와이프 눈치 보여..."
-
-    전체 질문 맥락을 고려하여 분석한 후, 최종답변으로 분기명만 출력하세요.
-    """
-
-intent_clarify_followup_instruction = """
-    이 질문은 이전에 추가 정보를 요청한 후속 질문입니다.
-    이전 대화의 맥락을 고려하여, 사용자의 의도를 정확하게 파악해주세요.
-    예를 들어:
-    - 이전에 "어떤 종류의 튜닝을 원하시나요?"라고 물었고, 사용자가 "서스펜션 튜닝"이라고 답했다면
-    이는 서스펜션 튜닝에 대한 recommendation 의도로 분류해야 합니다.
-    - 이전에 "어떤 모델의 지프를 가지고 계신가요?"라고 물었고, 사용자가 "랭글러 JL"이라고 답했다면
-    이는 랭글러 JL에 대한 recommendation 의도로 분류해야 합니다.
-    """
-
-intent_context_relevance_instruction = """
-    이전 대화와 현재 질문의 연관성을 분석해주세요:
-    1. 현재 질문이 이전 대화의 주제와 직접적으로 연관되어 있는지
-    2. 이전 대화에서 언급된 내용에 대한 추가 질문인지
-    3. 이전 대화의 맥락을 이해해야 정확한 답변이 가능한지
-
-    연관성이 있다고 판단되면, 이전 대화의 맥락을 고려하여 분류해주세요.
-    """
-
-knowledge_summary_system_prompt = """
-    당신은 지프 튜닝 기술 문서를 요약하는 전문가입니다.
-    제공된 문서 내용을 기반으로만 요약을 생성하세요.
-    외부 지식, 유추, 상식에 기반한 내용은 포함하지 마세요.
-    """
-
+# regulation
 administrative_step_classifier_prompt = """
     당신은 질문이 튜닝과 관련된 '사무 처리 또는 신청 절차'에 대한 것인지 판단하는 분류기입니다.
     질문이 튜닝 승인, 검사, 신청 절차, 처리 기한, 행정적 조치 등과 관련된 질문이면 '네'라고 답하십시오. 그 외 기술적 설명, 부품 특성, 구조적 제약 등은 모두 '아니요'라고 답하십시오.
@@ -463,6 +484,7 @@ administrative_step_classifier_prompt = """
     휠 튜닝은 승인을 받아야 하나요? -> 아니오
     """
 
+# regulation
 web_search_query_generator_prompt = """당신은 검색 쿼리 최적화 도우미입니다.  
     사용자의 질문이 주어지면, 해당 질문에 가장 적합한 웹 검색 쿼리를 생성하십시오.  
     다음 기준을 따르십시오:
