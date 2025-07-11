@@ -1,5 +1,6 @@
 from jeepchat.services.model_loader import openai_response
 from jeepchat.services.chat_memory import ChatMemoryManager
+from jeepchat.services.context import build_history_context
 from jeepchat.config.prompts import clarification_prompt, info_check_prompt
 from jeepchat.state import ChatState
 from jeepchat.logger import logger
@@ -13,39 +14,45 @@ def clarify_node(state: ChatState):
     conversation_history = state.get("conversation_history", "")
     vehicle_fitment = state.get('vehicle_fitment', None)
 
+    clarify_attempts = state.get("clarify_attempts", 0)
+
+    if clarify_attempts >= 2:
+        logger.warning(f"[ClarifyNode] clarify_attempts {clarify_attempts}회 초과 → fallback 이동")
+        clarify_prompt = clarification_prompt(history_context=history_context, user_input=query)
+        response = openai_response(system_prompt=clarify_prompt, user_input=query)
+
+        return {
+            **state,
+            "output": response,
+            "clarify_attempts": clarify_attempts,
+            "force_fallback": True
+        }
+
     if vehicle_fitment:
         query = f"{user_input} (vehicle fitment: {vehicle_fitment})"
     else:
         query = user_input
 
-    history_context = ""
-    if conversation_history:
-        recent_history = conversation_history[-3:]
-        history_context = "\n".join(
-            f"사용자: {item['user']}\n시스템: {item['system']}" for item in recent_history
-        ) + "\n"
-    
+    history_context = build_history_context(conversation_history=conversation_history)
     memory_manager = ChatMemoryManager()
-
-    # 먼저 충분한 정보가 있는지 확인
-    prompt = info_check_prompt(history_context=history_context, user_input=query)
     
     try:
+        # 정보 충분 여부 판단
+        prompt = info_check_prompt(history_context=history_context, user_input=query)
         info_check = openai_response(system_prompt=prompt, user_input=query)
         
-        logger.info(f"[ClarifyNode] 충분한 정보 확인 → 재라우팅")
-
         if info_check.strip().lower() == 'sufficient':
+            logger.info(f"[ClarifyNode] 충분한 정보 확인 → 재라우팅")
             return {
                 **state,
                 "is_clarify_followup": True,
                 "original_query": user_input,
-                "needs_rerouting": True
+                "needs_rerouting": True,
+                "clarify_attempts": 0 # 초기화
             }
         
         logger.info(f"[ClarifyNode] 추가 정보 필요 → 추가 질문 생성")
         clarify_prompt = clarification_prompt(history_context=history_context, user_input=query)
-        
         response = openai_response(system_prompt=clarify_prompt, user_input=query)
         
         # Save the clarification question to chat memory
@@ -63,7 +70,8 @@ def clarify_node(state: ChatState):
             **state,
             'output': response,
             'original_query': user_input,
-            'needs_rerouting': False
+            'needs_rerouting': False,
+            "clarify_attempts": clarify_attempts + 1
             }
 
     except Exception as e:
