@@ -1,10 +1,12 @@
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Dict, Any
 from jeepchat.utils import generate_message_id
 from jeepchat.logger import logger
 from jeepchat.config.prompts import product_recommend_prompt
+from jeepchat.config.config import GPT_4_1_MINI_MODEL_ID
 from jeepchat.services.model_loader import openai_response
 from jeepchat.services.chat_memory import ChatMemoryManager
+from jeepchat.services.context import build_history_context
 from jeepchat.state import ChatState
 
 def generate_response_node(state: ChatState) -> Dict[str, Any]:
@@ -13,6 +15,7 @@ def generate_response_node(state: ChatState) -> Dict[str, Any]:
     user_id = state["user_id"]
     thread_id = state["thread_id"]
     conversation_history = state.get("conversation_history", [])
+    vehicle_fitment = state.get("vehicle_fitment", "")
     is_followup = state.get("is_followup", False)
 
     product_info = state.get("product_info", "")
@@ -26,25 +29,22 @@ def generate_response_node(state: ChatState) -> Dict[str, Any]:
 
     memory_manager = ChatMemoryManager()
 
-    history_context = ""
     if is_followup and conversation_history:
-        recent_history = conversation_history[-3:]
-        history_context = "\n".join(
-            f"사용자: {item['user']}\n시스템: {item['system']}" for item in recent_history
-        ) + "\n"
+        history_context = build_history_context(conversation_history)
 
     try:
         # 제품 정보와 지식 정보를 결합하여 최종 컨텍스트 구성
-        final_context = f"""제품 정보:
+        final_context = f"""
+        제품 정보(product_info):
         {product_info}
 
         [지식 정보는 참조용입니다]
-        관련 지식:
+        관련 지식(knowledge_hits):
         {knowledge_summary}"""
 
         # LLM 호출하여 응답 생성
         response = call_llm_with_context(
-            user_input=user_input, 
+            user_input=user_input + f"\n차종 정보(vehicle_fitment):{vehicle_fitment}", 
             context=final_context, 
             history_context=history_context
         )
@@ -81,10 +81,13 @@ def call_llm_with_context(user_input: str, context: str, history_context):
     
     prompt = product_recommend_prompt(history_context=history_context, context=context, user_input=user_input)
 
-    logger.info(f"history_context: {history_context}")
-
     try:
-        response = openai_response(system_prompt=prompt, user_input=user_input, max_tokens=1024)
+        response = openai_response(
+            system_prompt=prompt, 
+            user_input=user_input, 
+            max_tokens=2048,
+            model_id=GPT_4_1_MINI_MODEL_ID
+        )
         return response
 
     except Exception as e:
