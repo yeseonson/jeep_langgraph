@@ -45,6 +45,9 @@ def format_product_recommendations(neo4j_hits: Dict[str, Dict[str, Any]]) -> str
         )
         category = base.get("category_name", "정보 없음")
         product_url = base.get("product_url", "정보 없음")
+        features_details = base.get("features_details", "정보 없음")
+        specifications = base.get("specifications", "정보 없음")
+        included_in_price = base.get("included_in_price", "정보 없음")
         rec_count = hit.get("recommendation_count", "정보 없음")
 
         lines.append(f"[기준 부품] {base_model_no}")
@@ -54,6 +57,9 @@ def format_product_recommendations(neo4j_hits: Dict[str, Dict[str, Any]]) -> str
         lines.append(f"- 제조사: {manufacturer} (랭킹: {manufacturer_rank_str})")
         lines.append(f"- 카테고리: {category}")
         lines.append(f"- 상품 URL: {product_url}")
+        lines.append(f"- 상품 정보: {features_details}")
+        lines.append(f"- 사양: {specifications}")
+        lines.append(f"- 가격 포함 정보: {included_in_price}")
         lines.append(f"- 추천 부품 수: {rec_count}")
         
         if not recommendations:
@@ -74,6 +80,9 @@ def format_product_recommendations(neo4j_hits: Dict[str, Dict[str, Any]]) -> str
                 compatible_vehicles = rec.get("compatible_vehicles") or []
                 vehicles_str = ", ".join(compatible_vehicles) if compatible_vehicles else "정보 없음"
                 rec_product_url = rec.get("product_url", "정보 없음")
+                rec_features_details = rec.get("features_details", "정보 없음")
+                rec_specifications = rec.get("specifications", "정보 없음") 
+                rec_included_in_price = rec.get("included_in_price", "정보 없음")
 
                 lines.append(f"\n  [추천 부품 {idx}]")
                 lines.append(f"  - 모델번호: {rec_model_no}")
@@ -83,6 +92,9 @@ def format_product_recommendations(neo4j_hits: Dict[str, Dict[str, Any]]) -> str
                 lines.append(f"  - 제조사: {rec_manufacturer} (랭킹: {rec_rank_str})")
                 lines.append(f"  - 호환 차종: {vehicles_str}")
                 lines.append(f"  - 상품 URL: {rec_product_url}")
+                lines.append(f"  - 상품 정보: {rec_features_details}")
+                lines.append(f"  - 사양: {rec_specifications}")
+                lines.append(f"  - 가격 포함 정보: {rec_included_in_price}")
 
         lines.append("")
 
