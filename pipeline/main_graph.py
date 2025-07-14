@@ -100,7 +100,7 @@ builder.add_edge("fallback_node", END)
 graph = builder.compile()
 
 if __name__ == "__main__":
-    filename="graph_output.png"
+    filename="main_graph_output.png"
     png_data = graph.get_graph().draw_mermaid_png()
     with open(filename, "wb") as f:
         f.write(png_data)
