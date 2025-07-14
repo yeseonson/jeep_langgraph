@@ -7,11 +7,14 @@ from jeepchat.services.database import opensearch_client
 from jeepchat.services.model_loader import get_embedder
 from jeepchat.config.config import PRODUCT_INDEX_NAME
 from jeepchat.config.constants import PRODUCT_TOP_K
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
 
 class JeepSearchService:
     def __init__(self):
         self.client = opensearch_client()
         self.index_name = PRODUCT_INDEX_NAME
+        self.stop_words = set(stopwords.words("english"))
         self.embedder = get_embedder()
         # 키워드 대체 사전
         self.keyword_replacements = {
@@ -23,7 +26,10 @@ class JeepSearchService:
             "데후": "Differential Gear",
             "데루등": "Tail Lamp",
             "단통": "Monotube",
+            "리프트킷": "Lift Kit",
+            "윈치": "Winch",
             "루프랙": "Roof Rack",
+            "베드랙": "Bed Rack",
             "휠": "Wheel",
             "타이어": "Tire",
             "브레이크": "Brake",
@@ -37,75 +43,120 @@ class JeepSearchService:
             "라이트바": "Light Bar", 
             "하드탑": "Hard Top", 
             "소프트탑": "Soft Top", 
+            "소탑": "Soft Top",
         }
 
     def replace_keywords(self, query_text: str) -> str:
-        """질문 내에 부품 키워드가 포함되어 있으면 대체 키워드를 함께 추가"""
         replacements = []
 
-        for keyword, replacement in self.keyword_replacements.items():
-            if keyword in query_text:
-                replacements.append(replacement)
-                logger.debug(f"'{keyword}' found in query_text → '{replacement}' added")
+        # 소문자 기준 비교용 (영어 질의 대비)
+        lowered_query = query_text.lower()
 
-        # 최종 검색어는 원문 + 추가 키워드
+        for keyword_kr, keyword_en in self.keyword_replacements.items():
+            # 한국어 키워드 포함 여부
+            if keyword_kr in query_text:
+                replacements.append(keyword_en)
+                logger.debug(f"[KR] '{keyword_kr}' found in query_text → '{keyword_en}' added")
+            # 영어 키워드 포함 여부 (단어 단위가 아니더라도 부분 일치 시 추가 가능)
+            elif keyword_en.lower() in lowered_query:
+                if keyword_en not in replacements:
+                    replacements.append(keyword_en)
+                    logger.debug(f"[EN] '{keyword_en}' found in query_text → '{keyword_en}' retained")
+
+        # 최종 검색어 확장
         extended_query = f"{query_text} {' '.join(replacements)}" if replacements else query_text
         return extended_query
     
+    def contains_korean(self, text: str) -> bool:
+        return any('\uac00' <= char <= '\ud7a3' for char in text)
+
+    def clean_english(self, text: str, max_tokens: int = 50) -> str:
+        tokens = word_tokenize(text)
+        filtered = [t for t in tokens if t.lower() not in self.stop_words and t.isalnum()]
+        return ' '.join(filtered[:max_tokens])
+
     def build_query_body(self, processed_query, query_vector, size: int = PRODUCT_TOP_K, vehicle_fitment=None):
-        """사용자 쿼리를 분석하여 검색 쿼리 생성"""
+        is_korean = self.contains_korean(processed_query)
+
+        if is_korean:
+            # 한국어 쿼리 구성
+            match_query = {
+                "dis_max": {
+                    "queries": [
+                        {
+                            "match": {
+                                "product_name_ko": {
+                                    "query": processed_query,
+                                    "boost": 1,
+                                    "minimum_should_match": "1"
+                                }
+                            }
+                        },
+                        {
+                            "match": {
+                                "product_name": {
+                                    "query": processed_query,
+                                    "boost": 1,
+                                    "minimum_should_match": "1"
+                                }
+                            }
+                        },
+                        {
+                            "match": {
+                                "keywords": {
+                                    "query": processed_query,
+                                    "boost": 2,
+                                    "minimum_should_match": "1"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        else:
+            # 영어 전처리
+            processed_query = self.clean_english(processed_query)
+
+            # 영어 쿼리 구성
+            match_query = {
+                "multi_match": {
+                    "query": processed_query,
+                    "type": "most_fields",
+                    "fields": [
+                       "product_name^3",
+                        "product_name_ko^1",
+                        "keywords^2"
+                    ],
+                    "minimum_should_match": "1"
+                }
+            }
+
+        # bool 쿼리 구성
         bool_query = {
-            "should": [
+            "should": [match_query]
+        }
+
+        # vehicle_fitment 필터링
+        if vehicle_fitment:
+            bool_query["filter"] = [
                 {
-                    "dis_max": {
-                        "queries": [
+                    "bool": {
+                        "should": [
                             {
-                                "match": {
-                                    "product_name_ko": {
-                                        "query": processed_query,
-                                        "boost": 1,
-                                        "minimum_should_match": "1"
-                                    }
+                                "match_phrase": {
+                                    "vehicle_fitment": vehicle_fitment
                                 }
                             },
                             {
                                 "match": {
-                                    "product_name": {
-                                        "query": processed_query,
-                                        "boost": 1,
-                                        "minimum_should_match": "1"
-                                    }
+                                    "vehicle_fitment": "all"
                                 }
-                            },
-                            {
-                                "match": {
-                                    "keywords": {
-                                        "query": processed_query,
-                                        "boost": 2,
-                                        "minimum_should_match": "1"
-                                    }
-                                }
-                            },
-                        ]
+                            }
+                        ],
+                        "minimum_should_match": 1
                     }
                 }
             ]
-        }
-
-        # vehicle_fitment 값이 주어진 경우 filter 조건 추가
-        if vehicle_fitment:
-            bool_query.setdefault("filter", [])
-            
-            bool_query["should"].append({
-                "match_phrase": {
-                    "vehicle_fitment": vehicle_fitment
-                }
-            })
-            bool_query["should"].append({
-                "term": {
-                    "vehicle_fitment.keyword": "all"
-                }
-            })
 
         query_body = {
             "size": size,
@@ -157,7 +208,6 @@ class JeepSearchService:
 
             text_query = query_body.get('query', {}).get('function_score', {}).get('query', {})
 
-            #logger.debug(f"Opensearch query: {json.dumps(text_query, ensure_ascii=False)}")
             logger.debug(f"Search size: {query_body.get('size', 'default')}")
 
             start_time = time.time()
@@ -174,12 +224,13 @@ class JeepSearchService:
                     "manufacturer": hit["_source"].get("manufacturer", ""),
                     "price": hit["_source"].get("price", ""),
                     "main_category": hit["_source"].get("main_category"),
-                    "product_url": hit["_source"].get("detail_url")
+                    "product_url": hit["_source"].get("detail_url"),
+                    "features_details": hit["_source"].get("features_details", ""),
+                    "specifications": hit["_source"].get("specifications", ""),
+                    "included_in_price": hit["_source"].get("included_in_price", ""),
                 }
                 for hit in hits
             ]
-            
-            # model_no_list = [item["model_no"] for item in result if item["model_no"]]
             
             return result
 
@@ -187,9 +238,8 @@ class JeepSearchService:
             logger.error(f"Error during search processing: {str(e)}", exc_info=True)
             raise
 
-
 # 예시 실행
 if __name__ == "__main__":
     search_service = JeepSearchService()
-    results = search_service.search("글래디에이터 타이어", size=PRODUCT_TOP_K)
+    results = search_service.search("지프 글래디에이터 4.5 인치 리프트킷을 추천해주세요", size=PRODUCT_TOP_K)
     print(results)
