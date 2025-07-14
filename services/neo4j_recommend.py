@@ -73,29 +73,35 @@ def recommend_parts(graph: Neo4jGraph, input_model_nos: List[str], optional_quer
                 COALESCE(baseManufacturer.name_en, 'Unknown') AS base_manufacturer_name,
                 COALESCE(baseManufacturer.ranking, 0) AS base_manufacturer_ranking,
                 COALESCE(category.name, 'Unknown') AS category_name,
+                COALESCE(basePart.features_details, 'Unknown') AS base_features_details,
+                COALESCE(basePart.specifications, 'Unknown') AS base_specifications,
+                COALESCE(basePart.included_in_price, 'Unknown') AS base_included_in_price,
                 basePart.price AS base_price,
                 isUniversalBase AS is_universal,
-            CASE 
-                WHEN isUniversalBase THEN ['all']
-                WHEN SIZE(baseVehicles) = 0 THEN ['N/A']
-                ELSE [v IN baseVehicles | v.model + ' (' + COALESCE(v.trim, 'Base') + ', ' + toString(v.year_start) + '-' + toString(COALESCE(v.year_end, 'Present')) + ')']
-            END AS base_vehicles,
-            basePart.detail_url AS base_product_url,
-            SIZE(limitedRecommendations) AS recommendation_count,
-            [rec IN limitedRecommendations | {
-                model_no: rec.part.model_no,
-                name_ko: rec.part.name_ko,
-                name_en: rec.part.name_en,
-                price: rec.part.price,
-                manufacturer_name: rec.manufacturer.name_en,
-                manufacturer_ranking: rec.manufacturer.ranking,
-                compatible_vehicles: CASE 
-                WHEN rec.isUniversal THEN ['all']
-                WHEN SIZE(rec.vehicles) = 0 THEN ['N/A']
-                ELSE [v IN rec.vehicles | v.model + ' (' + COALESCE(v.trim, 'Base') + ', ' + toString(v.year_start) + '-' + toString(COALESCE(v.year_end, 'Present')) + ')']
-                END,
-                product_url: rec.part.detail_url
-            }] AS recommended_parts
+                CASE 
+                    WHEN isUniversalBase THEN ['all']
+                    WHEN SIZE(baseVehicles) = 0 THEN ['N/A']
+                    ELSE [v IN baseVehicles | v.model + ' (' + COALESCE(v.trim, 'Base') + ', ' + toString(v.year_start) + '-' + toString(COALESCE(v.year_end, 'Present')) + ')']
+                END AS base_vehicles,
+                basePart.detail_url AS base_product_url,
+                SIZE(limitedRecommendations) AS recommendation_count,
+                [rec IN limitedRecommendations | {
+                    model_no: rec.part.model_no,
+                    name_ko: rec.part.name_ko,
+                    name_en: rec.part.name_en,
+                    price: rec.part.price,
+                    manufacturer_name: rec.manufacturer.name_en,
+                    manufacturer_ranking: rec.manufacturer.ranking,
+                    compatible_vehicles: CASE 
+                    WHEN rec.isUniversal THEN ['all']
+                    WHEN SIZE(rec.vehicles) = 0 THEN ['N/A']
+                    ELSE [v IN rec.vehicles | v.model + ' (' + COALESCE(v.trim, 'Base') + ', ' + toString(v.year_start) + '-' + toString(COALESCE(v.year_end, 'Present')) + ')']
+                    END,
+                    product_url: rec.part.detail_url,
+                    features_details: rec.part.features_details,
+                    specifications: rec.part.specifications,
+                    included_in_price: rec.part.included_in_price
+                }] AS recommended_parts
                     """)
     
     all_results = {}
@@ -116,6 +122,9 @@ def recommend_parts(graph: Neo4jGraph, input_model_nos: List[str], optional_quer
                 "base_price": row["base_price"],
                 "base_vehicles": row["base_vehicles"],
                 "product_url": row["base_product_url"],
+                "features_details": row.get("base_features_details", "Unknown"),
+                "specifications": row.get("base_specifications", "Unknown"),  
+                "included_in_price": row.get("base_included_in_price", "Unknown"),
             },
             "recommendation_count": row["recommendation_count"],
             "recommendations": row["recommended_parts"]
@@ -137,6 +146,9 @@ def recommend_parts(graph: Neo4jGraph, input_model_nos: List[str], optional_quer
                 "base_price": None,
                 "base_vehicles": [],
                 "product_url": None,
+                "features_details": None,
+                "specifications": None,
+                "included_in_price": None
             },
               "recommendation_count": 0,
               "recommendations": []
@@ -166,6 +178,9 @@ def print_recommendations(recommendations: Dict[str, Dict[str, Any]]):
             logger.info(f"적용 차종: {vehicles_str}")
         
         logger.info(f"상품 URL: {base_info['product_url']}")
+        logger.info(f"상품 정보: {base_info.get('features_details', 'Unknown')}")
+        logger.info(f"사양: {base_info.get('specifications', 'Unknown')}")
+        logger.info(f"가격 포함 정보: {base_info.get('included_in_price', 'Unknown')}")
         logger.info(f"추천 개수: {result['recommendation_count']}")
 
         if recommendations_list:
@@ -180,8 +195,11 @@ def print_recommendations(recommendations: Dict[str, Dict[str, Any]]):
                     vehicles_str = ', '.join(rec['compatible_vehicles'])
                     logger.info(f"- 적용 차종: {vehicles_str}"),
                 logger.info(f"- 상품 URL: {rec['product_url']}")
+                logger.info(f"- 상품 정보: {rec.get('features_details', 'Unknown')}")
+                logger.info(f"- 사양: {rec.get('specifications', 'Unknown')}")
+                logger.info(f"- 가격 포함 정보: {rec.get('included_in_price', 'Unknown')}")
         else:
-            logger.info("추천 부품: 없음")
+            logger.info("추천 부품: Unknown")
 
 def neo4j_graph():
     graph = Neo4jGraph(
