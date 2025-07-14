@@ -6,7 +6,7 @@ from jeepchat.services.web_search import web_search_tool
 from jeepchat.services.knowledge_search import hybrid_search, semantic_search
 from jeepchat.logger import logger
 from jeepchat.services.chat_memory import ChatMemoryManager
-from jeepchat.services.context import build_history_context
+from jeepchat.services.context import build_user_history_context
 from jeepchat.utils import generate_message_id
 from typing import Dict, Any
 
@@ -14,17 +14,16 @@ from typing import Dict, Any
 # 문서 검색 노드
 def retrieve(state: ChatState):
     logger.info("==== RETRIEVE ====\n")
-    user_input = state['user_input']
+    query = state['user_input']
     vehicle_fitment = state.get('vehicle_fitment', None)
-    conversation_history = state.get("conversation_history", "")
     is_retry_count = state.get('is_retry_count', 0)
     is_followup = state.get('is_followup', False)
 
-    if is_followup == True:
-        history_context = build_history_context(conversation_history)
-        query = user_input + "\n\n" + history_context
-    else:
-        query = user_input
+    history_context = ""
+    if is_followup:
+        conversation_history = state.get("conversation_history", "")
+        history_context = build_user_history_context(conversation_history)
+        query += f"\n{history_context}"
 
     # vehicle_fitment 조건을 query에 추가
     if vehicle_fitment:
@@ -46,8 +45,7 @@ def generate(state: ChatState) -> Dict[str, Any]:
     logger.info("==== GENERATE ====\n")
     user_input = state['user_input']
     vehicle_fitment = state.get('vehicle_fitment', None)
-    is_followup = state.get('is_followup', "not_relevant")
-    conversation_history = state.get("conversation_history", "")
+    is_followup = state.get('is_followup', False)
 
     if vehicle_fitment:
         query = f"{user_input} (vehicle fitment: {vehicle_fitment})"
@@ -55,7 +53,11 @@ def generate(state: ChatState) -> Dict[str, Any]:
         query = user_input
 
     documents = state.get('documents', [])
-    history_context = build_history_context(conversation_history)
+    
+    history_context = ""
+    if is_followup:
+        conversation_history = state.get("conversation_history", "")
+        history_context = build_user_history_context(conversation_history)
         
     # RAG를 사용한 답변 생성
     documents_text = ""
