@@ -14,7 +14,6 @@ def generate_response_node(state: ChatState) -> Dict[str, Any]:
     
     user_id = state["user_id"]
     thread_id = state["thread_id"]
-    conversation_history = state.get("conversation_history", [])
     vehicle_fitment = state.get("vehicle_fitment", "")
     is_followup = state.get("is_followup", False)
 
@@ -29,8 +28,10 @@ def generate_response_node(state: ChatState) -> Dict[str, Any]:
 
     memory_manager = ChatMemoryManager()
 
-    if is_followup and conversation_history:
-        history_context = build_history_context(conversation_history)
+    history_context = ""
+    if is_followup:
+        conversation_history = state.get("conversation_history", [])
+        history_context = build_history_context(conversation_history, max_turns=1)
 
     try:
         # 제품 정보와 지식 정보를 결합하여 최종 컨텍스트 구성
@@ -44,9 +45,9 @@ def generate_response_node(state: ChatState) -> Dict[str, Any]:
 
         # LLM 호출하여 응답 생성
         response = call_llm_with_context(
-            user_input=user_input + f"\n차종 정보(vehicle_fitment):{vehicle_fitment}", 
-            context=final_context, 
-            history_context=history_context
+            user_input + f"\n차종 정보(vehicle_fitment):{vehicle_fitment}", 
+            final_context, 
+            history_context
         )
         if user_id and thread_id:
             message = {
@@ -73,13 +74,13 @@ def generate_response_node(state: ChatState) -> Dict[str, Any]:
             "output": "죄송합니다. 처리 중 오류가 발생했습니다."
         }
     
-def call_llm_with_context(user_input: str, context: str, history_context):
+def call_llm_with_context(user_input: str, context: str, history_context: str):
     """컨텍스트와 함께 LLM 호출"""
 
     if not user_input.strip() or not context.strip():
         return "입력 정보가 부족합니다."
     
-    prompt = product_recommend_prompt(history_context=history_context, context=context, user_input=user_input)
+    prompt = product_recommend_prompt(history_context, context, user_input)
 
     try:
         response = openai_response(

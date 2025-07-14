@@ -18,7 +18,7 @@ def analyze_context(state: ChatState) -> ChatState:
     logger.info(f"[CONTEXT_ANALYZER] 입력 분석: user_input - {user_input}, vehicle_fitment - {vehicle_fitment}")
     logger.info(f"[CONTEXT_ANALYZER] clarify 후속 여부: {is_clarify_followup}")
 
-    context_relevant = False
+    is_followup = False
     conversation_history = []
 
     if user_id and thread_id:

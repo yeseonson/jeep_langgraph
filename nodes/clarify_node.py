@@ -33,6 +33,7 @@ def clarify_node(state: ChatState):
     else:
         query = user_input
 
+    history_context = ""
     history_context = build_history_context(conversation_history=conversation_history)
     memory_manager = ChatMemoryManager()
     

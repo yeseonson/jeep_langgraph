@@ -1,6 +1,7 @@
 from datetime import datetime
 from jeepchat.state import ChatState
 from jeepchat.utils import generate_message_id
+from jeepchat.config.config import GPT_4_1_MINI_MODEL_ID
 from jeepchat.services.regulation_search import hybrid_search_filtering, run_filtering_search
 from jeepchat.config.prompts import (device_category_classifier_prompt, 
                                      administrative_step_classifier_prompt,
@@ -14,6 +15,7 @@ from jeepchat.services.model_loader import openai_response
 from jeepchat.services.web_search import tavily_search_node
 from jeepchat.services.regulation_search import semantic_search
 from jeepchat.services.chat_memory import ChatMemoryManager
+from jeepchat.services.context import build_user_history_context
 from jeepchat.logger import logger
 
 memory_manager = ChatMemoryManager()
@@ -145,21 +147,18 @@ def process_administrative_step_node(state: ChatState) -> ChatState:
 def openai_responses_node(state: ChatState) -> ChatState:
     user_id = state.get("user_id", "")
     thread_id = state.get("thread_id", "")
-    user_input = state.get("user_input", "")
+    message_id = generate_message_id(user_id=user_id)
+
+    query = state.get("user_input", "")
     system_prompt = state.get("system_prompt", "")
     is_followup = state.get("is_followup", "not_relevant")
     conversation_history = state.get("conversation_history", "")
-
-    message_id = generate_message_id(user_id=user_id)
     
-
-    history_context = ""
-    if is_followup == "relevant" and conversation_history:
-        recent_history = conversation_history[-3:]
-        history_context = "\n".join(
-            f"사용자: {item['user']}\n시스템: {item['system']}" for item in recent_history
-        ) + "\n"
-
+    history_context = build_user_history_context(conversation_history)
+    
+    if is_followup:
+        query += f"\n{history_context}"
+        
     result = openai_response(
     system_prompt=system_prompt,
     user_input=f"""
@@ -167,13 +166,13 @@ def openai_responses_node(state: ChatState) -> ChatState:
         {history_context}
         
         # Here is the user's QUESTION that you should answer:
-        Q: {user_input}\nA:""",
+        Q: {query}\nA:""",
     temperature=0,
-    model_id="gpt-4.1-mini"
+    model_id=GPT_4_1_MINI_MODEL_ID
     )
 
     message = {
-        "user_input": user_input,
+        "user_input": query,
         "output": result,
         "timestamp": datetime.now().isoformat(),
         "type": "regulation"

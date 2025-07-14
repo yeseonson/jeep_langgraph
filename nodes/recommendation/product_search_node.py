@@ -2,11 +2,14 @@ from jeepchat.logger import logger
 from jeepchat.config.constants import PRODUCT_TOP_K
 from jeepchat.services.product_search import JeepSearchService
 from jeepchat.services.product_search_kw import JeepSearchServiceKW
+from jeepchat.services.context import build_user_history_context
 from jeepchat.state import ChatState
 
 def product_search_node(state: ChatState):
     try:
         query = state.get("user_input", "")
+        vehicle_fitment = state.get("vehicle_fitment", None)
+        is_followup = state.get("is_followup", False)
 
         if not query:
             return {
@@ -14,17 +17,19 @@ def product_search_node(state: ChatState):
                 "output": "질문을 입력해주세요.",
                 "product_hits": []
             }
+
+        if is_followup:
+            conversation_history = state.get("conversation_history", [])
+            history_context = build_user_history_context(conversation_history)
+            query += f" {history_context}"
         
-        vehicle_fitment = state.get("vehicle_fitment", None)
-
         product_search_service = JeepSearchService()
-
         product_hits = product_search_service.search(query, size=PRODUCT_TOP_K, vehicle_fitment=vehicle_fitment)
 
         if not product_hits:
             logger.info("[product_search_node] 기본 검색 결과 없음, 키워드 부스팅 검색 시도")
             product_search_service = JeepSearchServiceKW()
-            product_hits = product_search_service.search(query_text=query, size=PRODUCT_TOP_K, vehicle_fitment=vehicle_fitment)
+            product_hits = product_search_service.search(query, size=PRODUCT_TOP_K, vehicle_fitment=vehicle_fitment)
 
         if not product_hits:
             return {
