@@ -6,7 +6,7 @@ from jeepchat.services.context import build_history_context, get_recent_conversa
 def analyze_context(state: ChatState) -> ChatState:
     """맥락 분석 노드 - 이전 대화와 연관성 판단"""
 
-    from jeepchat.services.chat_memory import ChatMemoryManager
+    from jeepchat.services.chat_storage import S3ChatHistoryManager
     from jeepchat.services.model_loader import openai_response
     
     user_input = state.get("user_input", "")
@@ -22,7 +22,7 @@ def analyze_context(state: ChatState) -> ChatState:
     conversation_history = []
 
     if user_id and thread_id:
-        memory_manager = ChatMemoryManager()
+        memory_manager = S3ChatHistoryManager()
         previous_messages = memory_manager.get_thread_messages(user_id, thread_id)
 
         if previous_messages:
