@@ -52,7 +52,9 @@ def semantic_search(query_text, top_k=TOP_K):
         
         elapsed_time = time.time() - start_time
         logger.info(f"Semantic search completed: {len(results)} results, time elapsed: {elapsed_time:.2f} seconds")
-        logger.info(f"Semantic search results: {print_search_results(results=results, query=query_text)}")
+        logger.info("Semantic search results:\n")
+        print_search_results(results=results, query=query_text)
+
         return results
         
     except Exception as e:
