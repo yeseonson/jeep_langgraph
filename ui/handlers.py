@@ -24,7 +24,7 @@ def run_pipeline_for_gradio(
             thread_id = generate_thread_id(user_id=user_id)
 
         message_id = generate_message_id(user_id=user_id)
-        previous_messages = memory_manager.get_thread_messages(user_id, thread_id)
+        previous_messages = chat_manager.get_thread_messages(user_id, thread_id)
         is_clarify_followup = (
             previous_messages[-1].get("type") == "clarification"
             if previous_messages else False
@@ -104,5 +104,4 @@ def create_new_thread(user_id: str):
 def initialize_interface():
     user_id = generate_user_id()
     threads = chat_manager.get_user_threads(user_id)
-    debug_msg = f"{user_id} 사용자에게 {len(threads)}개의 대화가 있습니다."
-    return user_id, gr.update(choices=threads, value=None), gr.update(value=debug_msg)
+    return user_id, gr.update(choices=threads, value=None)
